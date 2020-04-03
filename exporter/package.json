@@ -1,0 +1,33 @@
+{
+  "name": "civil-iot-exporter",
+  "description": "Civil IoT Exporter",
+  "license": "MIT",
+  "author": {
+    "name": "Bentley Systems, Inc.",
+    "url": "http://www.bentley.com"
+  },
+  "engines": {
+    "node": ">=10.11.0 <13.0"
+  },
+  "private": true,
+  "main": "lib/Main.js",
+  "scripts": {
+    "build": "tsc 1>&2",
+    "clean": "rimraf lib",
+    "lint": "tslint --project . 1>&2",
+    "start": "node ./lib/main.js"
+  },
+  "dependencies": {
+    "@bentley/bentleyjs-core": "2.0.0-dev.56",
+    "@bentley/geometry-core": "2.0.0-dev.56",
+    "@bentley/imodeljs-backend": "2.0.0-dev.56",
+    "@bentley/imodeljs-clients": "2.0.0-dev.56",
+    "@bentley/imodeljs-clients-backend": "2.0.0-dev.56",
+    "@bentley/imodeljs-common": "2.0.0-dev.56"
+  },
+  "devDependencies": {
+    "@bentley/build-tools": "2.0.0-dev.56",
+    "@types/node": "10.14.1",
+    "rimraf": "^2.6.2"
+  }
+}

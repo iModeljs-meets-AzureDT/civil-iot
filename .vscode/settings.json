@@ -1,0 +1,11 @@
+{
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "search.exclude": {
+    "**/node_modules": true
+  },
+  "cSpell.words": [
+    "bentleyjs",
+    "imodeljs"
+  ]
+}
