@@ -21,7 +21,7 @@
     </Target>
   </ECRelationshipClass>
 
-  <ECRelationshipClass typeName="SensorCoversSpatialElement" strength="referencing" modifier="None" description="Relates a iot:Sensor to a bis:SpatialElement within its coverage area.">
+  <ECRelationshipClass typeName="SensorObservesSpatialElement" strength="referencing" modifier="None" description="Relates a iot:Sensor to the bis:SpatialElement that it observes.">
     <BaseClass>bis:ElementRefersToElements</BaseClass>
     <Source multiplicity="(0..*)" roleLabel="covers" polymorphic="true">
       <Class class="Sensor"/>
@@ -31,34 +31,20 @@
     </Target>
   </ECRelationshipClass>
 
-  <ECEntityClass typeName="SensorReadingRecord" displayLabel="Sensor Reading Record" description="Sensor readings are not typically stored in the iModel, but min, max, and expected values might be.">
+  <ECEntityClass typeName="ObservationType">
     <BaseClass>bis:TypeDefinitionElement</BaseClass>
-    <ECNavigationProperty propertyName="ReadingType" relationshipName="SensorReadingIsOfType" direction="Forward" displayLabel="Reading Type"/>
-    <ECProperty propertyName="ReadingValue" typeName="double"/>
+    <ECProperty propertyName="Unit" typeName="string"/>
+    <ECProperty propertyName="MinValue" typeName="double"/>
+    <ECProperty propertyName="MaxValue" typeName="double"/>
   </ECEntityClass>
 
-  <ECEntityClass typeName="SensorReadingType">
-    <BaseClass>bis:TypeDefinitionElement</BaseClass>
-    <ECProperty propertyName="ReadingLabel" typeName="string"/>
-    <ECProperty propertyName="ReadingUnit" typeName="string"/>
-  </ECEntityClass>
-
-  <ECRelationshipClass typeName="SensorReadingIsOfType" strength="referencing" modifier="None">
-    <Source multiplicity="(0..*)" roleLabel="is of" polymorphic="true">
-      <Class class="SensorReadingRecord" />
-    </Source>
-    <Target multiplicity="(0..1)" roleLabel="defines" polymorphic="true">
-      <Class class="SensorReadingType"/>
-    </Target>
-  </ECRelationshipClass>
-
-  <ECRelationshipClass typeName="SensorTypeHasReadingTypes" strength="referencing" modifier="None">
+  <ECRelationshipClass typeName="SensorTypeHasObservationTypes" strength="referencing" modifier="None">
     <BaseClass>bis:ElementRefersToElements</BaseClass>
     <Source multiplicity="(0..*)" roleLabel="is of" polymorphic="true">
       <Class class="SensorType" />
     </Source>
     <Target multiplicity="(0..*)" roleLabel="defines" polymorphic="true">
-      <Class class="SensorReadingType"/>
+      <Class class="ObservationType"/>
     </Target>
   </ECRelationshipClass>
 

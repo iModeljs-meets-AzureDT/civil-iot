@@ -6,13 +6,20 @@ import * as path from "path";
 
 const loggerCategory = "sensor-importer";
 
+interface ObservationTypeProps extends TypeDefinitionElementProps {
+  unitName: string;
+  minValue: number;
+  maxValue: number;
+}
+
 export class SensorImporter {
   private _iModelDb: IModelDb;
-  private _definitionModelId!: Id64String;
   private _physicalModelId!: Id64String;
-  private _sensorTypeCodeSpecId!: Id64String;
-  private _sensorCodeSpecId!: Id64String;
+  private _definitionModelId!: Id64String;
   private _sensorCategoryId!: Id64String;
+  private _sensorTypeCodeSpecId!: Id64String;
+  private _observationTypeCodeSpecId!: Id64String;
+  private _sensorCodeSpecId!: Id64String;
 
   public constructor(iModelDb: IModelDb) {
     this._iModelDb = iModelDb;
@@ -38,6 +45,7 @@ export class SensorImporter {
 
   private insertCodeSpecs(): void {
     this._sensorTypeCodeSpecId = this._iModelDb.codeSpecs.insert("SensorType", CodeScopeSpec.Type.Model);
+    this._observationTypeCodeSpecId = this._iModelDb.codeSpecs.insert("ObservationType", CodeScopeSpec.Type.Model);
     this._sensorCodeSpecId = this._iModelDb.codeSpecs.insert("Sensor", CodeScopeSpec.Type.Repository);
   }
 
@@ -52,12 +60,29 @@ export class SensorImporter {
   }
 
   private insertSampleData(): void {
-    const sensorTypeA: Id64String = this.insertSensorType("SensorTypeA");
-    const sensorTypeB: Id64String = this.insertSensorType("SensorTypeB");
-    this.insertSensor(sensorTypeA, "A1", [1, 1, 0]);
-    this.insertSensor(sensorTypeA, "A2", [2, 2, 0]);
-    this.insertSensor(sensorTypeB, "B1", [-1, -1, 0]);
-    this.insertSensor(sensorTypeB, "B2", [-2, -2, 0]);
+    const sensorTypeAQ: Id64String = this.insertSensorType("Air Quality");
+    this.insertObservationType(sensorTypeAQ, "CO", "ppm", 0.0, 100.0);
+    this.insertObservationType(sensorTypeAQ, "NO", "ppm", 0.0, 100.0);
+    this.insertObservationType(sensorTypeAQ, "NO2", "ppm", 0.0, 100.0);
+    this.insertSensor(sensorTypeAQ, "AQ-1", [1, 1, 0]);
+    this.insertSensor(sensorTypeAQ, "AQ-2", [2, 2, 0]);
+
+    const sensorTypeBD: Id64String = this.insertSensorType("Bridge Deflection");
+    this.insertObservationType(sensorTypeBD, "Deflection", "m", 0.0, 1.0);
+    this.insertSensor(sensorTypeBD, "BD-1", [-1, -1, 0]);
+    this.insertSensor(sensorTypeBD, "BD-2", [-2, -2, 0]);
+
+    const sensorTypeBV: Id64String = this.insertSensorType("Bridge Vibration");
+    this.insertObservationType(sensorTypeBV, "Vibration", "hz", 0.0, 0.1);
+    this.insertSensor(sensorTypeBV, "BV-1", [-1, -2, 0]);
+    this.insertSensor(sensorTypeBV, "BV-2", [-2, -3, 0]);
+
+    const sensorTypeT: Id64String = this.insertSensorType("Traffic");
+    this.insertObservationType(sensorTypeT, "Vehicle Count", "count", 0, Number.MAX_SAFE_INTEGER);
+    this.insertObservationType(sensorTypeT, "Truck Count", "count", 0, Number.MAX_SAFE_INTEGER);
+    this.insertSensor(sensorTypeBV, "T-1", [1, 2, 0]);
+    this.insertSensor(sensorTypeBV, "T-2", [2, 3, 0]);
+
     this.insertView();
   }
 
@@ -68,6 +93,24 @@ export class SensorImporter {
       code: { spec: this._sensorTypeCodeSpecId, scope: this._definitionModelId, value: name },
     };
     return this._iModelDb.elements.insertElement(sensorTypeProps);
+  }
+
+  private insertObservationType(sensorTypeId: Id64String, codeValue: string, unitName: string, minValue: number, maxValue: number): Id64String {
+    const observationTypeProps: ObservationTypeProps = {
+      classFullName: "IoTDevices:ObservationType",
+      model: this._definitionModelId,
+      code: { spec: this._observationTypeCodeSpecId, scope: this._definitionModelId, value: codeValue },
+      unitName,
+      minValue,
+      maxValue,
+    };
+    const observationTypeId: Id64String = this._iModelDb.elements.insertElement(observationTypeProps);
+    this._iModelDb.relationships.insertInstance({
+      classFullName: "IoTDevices:SensorTypeHasObservationTypes",
+      sourceId: sensorTypeId,
+      targetId: observationTypeId,
+    });
+    return observationTypeId;
   }
 
   private insertSensor(typeDefinitionId: Id64String, name: string, origin: XYZProps): Id64String {
