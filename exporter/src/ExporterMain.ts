@@ -8,3 +8,5 @@ const iModelDb: SnapshotDb = SnapshotDb.openFile(iModelFileName);
 const exporter = new Exporter(iModelDb);
 exporter.exportAll();
 iModelDb.close();
+
+IModelHost.shutdown();

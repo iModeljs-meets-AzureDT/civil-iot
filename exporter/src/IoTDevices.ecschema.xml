@@ -44,7 +44,6 @@
   </ECEntityClass>
 
   <ECRelationshipClass typeName="SensorReadingIsOfType" strength="referencing" modifier="None">
-    <BaseClass>bis:GeometricElement3dHasTypeDefinition</BaseClass>
     <Source multiplicity="(0..*)" roleLabel="is of" polymorphic="true">
       <Class class="SensorReadingRecord" />
     </Source>

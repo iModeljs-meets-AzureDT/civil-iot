@@ -12,10 +12,12 @@
   "private": true,
   "main": "lib/Main.js",
   "scripts": {
-    "build": "tsc 1>&2",
+    "build": "tsc 1>&2 && npm run copy:assets",
     "clean": "rimraf lib",
+    "copy:assets": "cpx \"./src/*.ecschema.xml\" ./lib/assets/",
     "lint": "tslint --project . 1>&2",
-    "start": "node ./lib/main.js"
+    "start:export": "node ./lib/ExporterMain.js",
+    "start:import": "node ./lib/ImporterMain.js"
   },
   "dependencies": {
     "@bentley/bentleyjs-core": "2.0.0-dev.56",
