@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ECSchema schemaName="IoTDevices" alias="iot" version="01.00.00" xmlns="http://www.bentley.com/schemas/Bentley.ECXML.3.1" displayLabel="IoT Devices" description="The base classes and relationships for IoT devices.">
+
+  <ECSchemaReference name="BisCore" version="01.00.04" alias="bis"/>
+
+  <ECEntityClass typeName="Sensor">
+    <BaseClass>bis:PhysicalElement</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="SensorType" displayLabel="Sensor Type">
+    <BaseClass>bis:TypeDefinitionElement</BaseClass>
+  </ECEntityClass>
+
+  <ECRelationshipClass typeName="SensorIsOfType" strength="referencing" modifier="None">
+    <BaseClass>bis:GeometricElement3dHasTypeDefinition</BaseClass>
+    <Source multiplicity="(0..*)" roleLabel="is of" polymorphic="true">
+      <Class class="Sensor" />
+    </Source>
+    <Target multiplicity="(0..1)" roleLabel="defines" polymorphic="true">
+      <Class class="SensorType"/>
+    </Target>
+  </ECRelationshipClass>
+
+  <ECRelationshipClass typeName="SensorObservesSpatialElement" strength="referencing" modifier="None" description="Relates a iot:Sensor to the bis:SpatialElement that it observes.">
+    <BaseClass>bis:ElementRefersToElements</BaseClass>
+    <Source multiplicity="(0..*)" roleLabel="covers" polymorphic="true">
+      <Class class="Sensor"/>
+    </Source>
+    <Target multiplicity="(0..*)" roleLabel="is covered by" polymorphic="true">
+      <Class class="bis:SpatialElement"/>
+    </Target>
+  </ECRelationshipClass>
+
+  <ECEntityClass typeName="ObservationType">
+    <BaseClass>bis:TypeDefinitionElement</BaseClass>
+    <ECProperty propertyName="Unit" typeName="string"/>
+    <ECProperty propertyName="MinValue" typeName="double"/>
+    <ECProperty propertyName="MaxValue" typeName="double"/>
+  </ECEntityClass>
+
+  <ECRelationshipClass typeName="SensorTypeHasObservationTypes" strength="referencing" modifier="None">
+    <BaseClass>bis:ElementRefersToElements</BaseClass>
+    <Source multiplicity="(0..*)" roleLabel="is of" polymorphic="true">
+      <Class class="SensorType" />
+    </Source>
+    <Target multiplicity="(0..*)" roleLabel="defines" polymorphic="true">
+      <Class class="ObservationType"/>
+    </Target>
+  </ECRelationshipClass>
+
+</ECSchema>
