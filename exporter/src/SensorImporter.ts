@@ -121,7 +121,7 @@ export class SensorImporter {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
       category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "SB-R1" },
+      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "R1-SB" },
       placement: { origin: [tunnelSize.x, 0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: roadGeometry,
     };
@@ -130,7 +130,7 @@ export class SensorImporter {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
       category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "NB-R1" },
+      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "R1-NB" },
       placement: { origin: [tunnelSize.x, 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: roadGeometry,
     };
@@ -140,8 +140,8 @@ export class SensorImporter {
     const vehicleCountId: Id64String = this.insertObservationType("Vehicle Count", "average per hour");
     const truckCountId: Id64String = this.insertObservationType("Truck Count", "average per hour");
     const vehicleCounterId: Id64String = this.insertSensorType("Vehicle Counter", [vehicleCountId, truckCountId]);
-    this.insertSensor(vehicleCounterId, "SB-R1-VC1", [tunnelSize.x + roadSize.x / 2.0, roadSize.y, 0.1], southRoadId);
-    this.insertSensor(vehicleCounterId, "NB-R1-VC1", [tunnelSize.x + roadSize.x / 2.0, 60, 0.1], northRoadId);
+    this.insertSensor(vehicleCounterId, "R1-SB-VC1", [tunnelSize.x + roadSize.x / 2.0, roadSize.y, 0.1], southRoadId);
+    this.insertSensor(vehicleCounterId, "R1-NB-VC1", [tunnelSize.x + roadSize.x / 2.0, 60, 0.1], northRoadId);
     // These observations roll up into the computed "Traffic Flow" metric in ADT
 
     // bridge physical object
@@ -151,7 +151,7 @@ export class SensorImporter {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
       category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "SB-BR1" },
+      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-SB" },
       placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: this.createBox(bridgeSize),
     };
@@ -160,7 +160,7 @@ export class SensorImporter {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
       category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "NB-BR1" },
+      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-NB" },
       placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0 + 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: this.createBox(bridgeSize),
     };
@@ -170,8 +170,8 @@ export class SensorImporter {
     const deflectionId: Id64String = this.insertObservationType("Deflection", "mm");
     const vibrationId: Id64String = this.insertObservationType("Vibration Amplitude", "g");
     const bridgeSensorTypeId: Id64String = this.insertSensorType("Bridge Sensor", [deflectionId, vibrationId]);
-    this.insertSensor(bridgeSensorTypeId, "SB-BR1-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0, 0.1], southBridgeId);
-    this.insertSensor(bridgeSensorTypeId, "NB-BR1-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0 + bridgeSize.y + 60, 0.1], northBridgeId);
+    this.insertSensor(bridgeSensorTypeId, "BR1-SB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0, 0.1], southBridgeId);
+    this.insertSensor(bridgeSensorTypeId, "BR1-NB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0 + bridgeSize.y + 60, 0.1], northBridgeId);
     // These observations roll up into the computed "Bridge Safety" metric in ADT
   }
 
