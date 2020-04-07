@@ -114,12 +114,6 @@ export class SensorImporter {
     this.insertSensor(exteriorTempId, "T1-NB-EXT-TEMP-1", [tunnelSize.x, 60 + 2 * tunnelSize.y / 3.0, tunnelSize.z], northTunnelId);
     // These observations roll up into the computed "Tunnel Air Quality" metric in ADT
 
-    /*
-    3 sets of 2 bridges (1 each does both deflection/vibration in the middle)
-
-    1 NB/1SB - vehicle/truck count avg per/hour
-    */
-
     // road physical object
     const roadSize = Point3d.create(500, 40, 0.1);
     const roadGeometry: GeometryStreamProps = this.createBox(roadSize);
@@ -148,6 +142,7 @@ export class SensorImporter {
     const vehicleCounterId: Id64String = this.insertSensorType("Vehicle Counter", [vehicleCountId, truckCountId]);
     this.insertSensor(vehicleCounterId, "SB-R1-VC1", [tunnelSize.x + roadSize.x / 2.0, roadSize.y, 0.1], southRoadId);
     this.insertSensor(vehicleCounterId, "NB-R1-VC1", [tunnelSize.x + roadSize.x / 2.0, 60, 0.1], northRoadId);
+    // These observations roll up into the computed "Traffic Flow" metric in ADT
 
     // bridge physical object
     const bridgeSize = Point3d.create(250, 50, 0.1);
@@ -177,6 +172,7 @@ export class SensorImporter {
     const bridgeSensorTypeId: Id64String = this.insertSensorType("Bridge Sensor", [deflectionId, vibrationId]);
     this.insertSensor(bridgeSensorTypeId, "SB-BR1-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0, 0.1], southBridgeId);
     this.insertSensor(bridgeSensorTypeId, "NB-BR1-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0 + bridgeSize.y + 60, 0.1], northBridgeId);
+    // These observations roll up into the computed "Bridge Safety" metric in ADT
   }
 
   private insertSensorType(name: string, observationTypes: Id64String[]): Id64String {
