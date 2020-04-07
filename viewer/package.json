@@ -36,6 +36,10 @@
           "dest": "./lib"
         },
         {
+          "source": "./src/**/*.svg",
+          "dest": "./lib"
+        },
+        {
           "source": "./public/**/*",
           "dest": "./lib/webresources"
         },
