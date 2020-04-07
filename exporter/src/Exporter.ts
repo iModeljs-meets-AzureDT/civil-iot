@@ -1,6 +1,6 @@
 import { DbResult, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
-import { ElementProps, IModel } from "@bentley/imodeljs-common";
+import { ElementProps, GeometricElement3dProps, IModel } from "@bentley/imodeljs-common";
 import { FileSystemUtils } from "./FileSystemUtils";
 import * as path from "path";
 
@@ -73,8 +73,12 @@ export class Exporter {
     this.iModelDb.withPreparedStatement(sensorSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
-        const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        sensorInstances.push(this.createObject(elementProps));
+        const elementProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(elementId);
+        const sensorInstance = this.createObject(elementProps);
+        if (elementProps.typeDefinition?.id) {
+          sensorInstance.isOfType = this.buildElementUrn(elementProps.typeDefinition.id);
+        }
+        sensorInstances.push(sensorInstance);
       }
     });
     const container = {
@@ -87,9 +91,10 @@ export class Exporter {
 
   private createObject(elementProps: ElementProps): any {
     return {
-      id: this.buildElementUrn(elementProps.id!),
-      name: elementProps.code.value,
-      federationGuid: elementProps.federationGuid,
+      "@id": this.buildElementUrn(elementProps.id!),
+      "@type": elementProps.classFullName.split(":")[1],
+      "name": elementProps.code.value,
+      "federationGuid": elementProps.federationGuid,
     };
   }
 
