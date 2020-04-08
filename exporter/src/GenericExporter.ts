@@ -1,4 +1,4 @@
-import { DbResult, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { DbResult, GuidString, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
 import { ElementProps, IModel } from "@bentley/imodeljs-common";
 import * as path from "path";
@@ -140,6 +140,14 @@ export class GenericExporter {
         }
       });
     }
+  }
+
+  private queryFederationGuid(elementId: Id64String): GuidString | undefined {
+    const sql = `SELECT FederationGuid FROM ${Element.classFullName} WHERE ECInstanceId=:elementId`;
+    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
+      statement.bindId("elementId", elementId);
+      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getGuid() : undefined;
+    });
   }
 }
 
