@@ -1,16 +1,11 @@
-import { Guid, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { GuidString, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
 import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, IModelDb, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
 import { AxisAlignedBox3d, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import * as path from "path";
+import { ObservationTypeProps } from "./IoTDevices";
 
 const loggerCategory = "sensor-importer";
-
-interface ObservationTypeProps extends TypeDefinitionElementProps {
-  unitName: string;
-  minValue?: number;
-  maxValue?: number;
-}
 
 export class SensorImporter {
   private _iModelDb: IModelDb;
@@ -95,11 +90,11 @@ export class SensorImporter {
     // tunnel sensors
     const coId: Id64String = this.insertObservationType("CO", "ppm");
     const no2Id: Id64String = this.insertObservationType("NO2", "ppb");
-    const exteriorAirId: Id64String = this.insertSensorType("Baseline Air Sensor", [coId, no2Id]);
-    const interiorAirId: Id64String = this.insertSensorType("Tunnel Air Sensor", [coId, no2Id]);
+    const exteriorAirId: Id64String = this.insertSensorType("Baseline Air Sensor", "2b91d7d0-9fd3-4f8b-9af3-2a400b7caee5", [coId, no2Id]);
+    const interiorAirId: Id64String = this.insertSensorType("Tunnel Air Sensor", "b92a49e4-f653-4e35-9c81-280d8efea5e9", [coId, no2Id]);
     const tempId: Id64String = this.insertObservationType("Temperature", "degrees Celsius");
-    const exteriorTempId: Id64String = this.insertSensorType("Exterior Thermometer", [tempId]);
-    const interiorTempId: Id64String = this.insertSensorType("Interior Thermometer", [tempId]);
+    const exteriorTempId: Id64String = this.insertSensorType("Exterior Thermometer", "ea174023-ee9e-480c-a70e-faf308d1241f", [tempId]);
+    const interiorTempId: Id64String = this.insertSensorType("Interior Thermometer", "a1e8a9e4-27a6-4bb3-981f-61173c06a935", [tempId]);
     this.insertSensor(interiorAirId, "T1-SB-INT-AIR-1", [tunnelSize.x / 3.0, 0, 10], southTunnelId);
     this.insertSensor(interiorAirId, "T1-SB-INT-AIR-2", [2 * tunnelSize.x / 3.0, 0, 10], southTunnelId);
     this.insertSensor(interiorTempId, "T1-SB-INT-TEMP-1", [tunnelSize.x / 3.0, tunnelSize.y, 10], southTunnelId);
@@ -139,7 +134,7 @@ export class SensorImporter {
     // road sensors
     const vehicleCountId: Id64String = this.insertObservationType("Vehicle Count", "average per hour");
     const truckCountId: Id64String = this.insertObservationType("Truck Count", "average per hour");
-    const vehicleCounterId: Id64String = this.insertSensorType("Vehicle Counter", [vehicleCountId, truckCountId]);
+    const vehicleCounterId: Id64String = this.insertSensorType("Vehicle Counter", "dd143ee4-9f0d-4ebc-b844-1f335647dd86", [vehicleCountId, truckCountId]);
     this.insertSensor(vehicleCounterId, "R1-SB-VC1", [tunnelSize.x + roadSize.x / 2.0, roadSize.y, 0.1], southRoadId);
     this.insertSensor(vehicleCounterId, "R1-NB-VC1", [tunnelSize.x + roadSize.x / 2.0, 60, 0.1], northRoadId);
     // These observations roll up into the computed "Traffic Flow" metric in ADT
@@ -169,17 +164,18 @@ export class SensorImporter {
     // bridge sensors
     const deflectionId: Id64String = this.insertObservationType("Deflection", "mm");
     const vibrationId: Id64String = this.insertObservationType("Vibration Amplitude", "g");
-    const bridgeSensorTypeId: Id64String = this.insertSensorType("Bridge Sensor", [deflectionId, vibrationId]);
+    const bridgeSensorTypeId: Id64String = this.insertSensorType("Bridge Sensor", "9adddb0e-1b6b-4399-92c8-b6322a57d028", [deflectionId, vibrationId]);
     this.insertSensor(bridgeSensorTypeId, "BR1-SB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0, 0.1], southBridgeId);
     this.insertSensor(bridgeSensorTypeId, "BR1-NB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0 + bridgeSize.y + 60, 0.1], northBridgeId);
     // These observations roll up into the computed "Bridge Safety" metric in ADT
   }
 
-  private insertSensorType(name: string, observationTypes: Id64String[]): Id64String {
+  private insertSensorType(name: string, federationGuid: GuidString, observationTypes: Id64String[]): Id64String {
     const sensorTypeProps: TypeDefinitionElementProps = {
       classFullName: "IoTDevices:SensorType",
       model: this._definitionModelId,
       code: { spec: this._sensorTypeCodeSpecId, scope: this._definitionModelId, value: name },
+      federationGuid,
     };
     const sensorTypeId: Id64String = this._iModelDb.elements.insertElement(sensorTypeProps);
     observationTypes.forEach((observationTypeId: Id64String) => {
@@ -192,28 +188,29 @@ export class SensorImporter {
     return sensorTypeId;
   }
 
-  private insertObservationType(codeValue: string, unitName: string, minValue?: number, maxValue?: number): Id64String {
+  private insertObservationType(codeValue: string, unit: string, minValue?: number, maxValue?: number): Id64String {
     const observationTypeProps: ObservationTypeProps = {
       classFullName: "IoTDevices:ObservationType",
       model: this._definitionModelId,
       code: { spec: this._observationTypeCodeSpecId, scope: this._definitionModelId, value: codeValue },
-      unitName,
+      unit,
       minValue,
       maxValue,
     };
     return this._iModelDb.elements.insertElement(observationTypeProps);
   }
 
-  private insertSensor(typeDefinitionId: Id64String, name: string, origin: XYZProps, physicalObjectId: Id64String): Id64String {
+  private insertSensor(sensorTypeId: Id64String, name: string, origin: XYZProps, physicalObjectId: Id64String): Id64String {
+    const sensorTypeIndex: number = this.getNextSensorTypeIndex(sensorTypeId);
     const sensorProps: GeometricElement3dProps = {
       classFullName: "IoTDevices:Sensor",
       model: this._physicalModelId,
       category: this._sensorCategoryId,
-      federationGuid: Guid.createValue(),
       code: { spec: this._sensorCodeSpecId, scope: IModel.rootSubjectId, value: name },
-      typeDefinition: { id: typeDefinitionId },
+      typeDefinition: { id: sensorTypeId },
       placement: { origin, angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: this.createSensorGeometry(0.2),
+      jsonProperties: { iot: { sensorTypeIndex } },
     };
     const sensorId: Id64String = this._iModelDb.elements.insertElement(sensorProps);
     if (undefined !== physicalObjectId) {
@@ -224,6 +221,16 @@ export class SensorImporter {
       });
     }
     return sensorId;
+  }
+
+  private _sensorTypeIndexMap = new Map<Id64String, number>();
+  private getNextSensorTypeIndex(sensorTypeId: Id64String): number {
+    let sensorTypeIndex: number | undefined = this._sensorTypeIndexMap.get(sensorTypeId);
+    if (undefined === sensorTypeIndex) {
+      sensorTypeIndex = 0;
+    }
+    this._sensorTypeIndexMap.set(sensorTypeId, ++sensorTypeIndex);
+    return sensorTypeIndex;
   }
 
   private createSensorGeometry(radius: number): GeometryStreamProps {

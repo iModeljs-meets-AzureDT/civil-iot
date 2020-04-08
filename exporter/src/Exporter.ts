@@ -1,7 +1,8 @@
-import { DbResult, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { DbResult, Id64, Id64String, Logger, LogLevel, GuidString } from "@bentley/bentleyjs-core";
 import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
 import { ElementProps, GeometricElement3dProps, IModel } from "@bentley/imodeljs-common";
 import { FileSystemUtils } from "./FileSystemUtils";
+import { ObservationTypeProps } from "./IoTDevices";
 import * as path from "path";
 
 const loggerCategory = "civil-iot-exporter";
@@ -50,17 +51,31 @@ export class Exporter {
 
   public exportForADT(): void {
     const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "for-adt.json");
-    const observedElements: any[] = [];
+    const iotSimulationId: GuidString = "28f13042-3e04-4025-8e6b-8c1ff0f16def";
+    const observedObjects: any[] = [];
     const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement";
     this.iModelDb.withPreparedStatement(observedSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const elementId: Id64String = statement.getValue(0).getId();
-        const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        observedElements.push(this.createObject(elementProps));
+        const observedElementId: Id64String = statement.getValue(0).getId();
+        const observedElementProps: ElementProps = this.iModelDb.elements.getElementProps(observedElementId);
+        const observedObject = this.createObject(observedElementProps);
+        observedObject.computedValue = 0.0; // will be populated by the Azure Function on the ADT side
+        observedObjects.push(observedObject);
+      }
+    });
+    const observationTypes: any[] = [];
+    const observationTypeSql = "SELECT ECInstanceId FROM IoTDevices:ObservationType";
+    this.iModelDb.withPreparedStatement(observationTypeSql, (statement: ECSqlStatement): void => {
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        const observationTypeId: Id64String = statement.getValue(0).getId();
+        const observationTypeProps: ObservationTypeProps = this.iModelDb.elements.getElementProps(observationTypeId);
+        const observationType = this.createObject(observationTypeProps);
+        observationType.unit = observationTypeProps.unit;
+        observationTypes.push(observationType);
       }
     });
     const sensorTypes: any[] = [];
-    const sensorTypeSql = "SELECT ECInstanceId FROM IoTDevices:SensorType";
+    const sensorTypeSql = "SELECT ECInstanceId FROM IoTDevices:SensorType ORDER BY ECInstanceId";
     this.iModelDb.withPreparedStatement(sensorTypeSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
@@ -69,24 +84,50 @@ export class Exporter {
       }
     });
     const sensorInstances: any[] = [];
-    const sensorSql = "SELECT ECInstanceId FROM IoTDevices:Sensor";
+    const sensorSql = "SELECT ECInstanceId,TypeDefinition.Id FROM IoTDevices:Sensor ORDER BY ECInstanceId";
     this.iModelDb.withPreparedStatement(sensorSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const elementId: Id64String = statement.getValue(0).getId();
-        const elementProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(elementId);
-        const sensorInstance = this.createObject(elementProps);
-        if (elementProps.typeDefinition?.id) {
-          sensorInstance.isOfType = this.buildElementUrn(elementProps.typeDefinition.id);
+        const sensorId: Id64String = statement.getValue(0).getId();
+        const sensorTypeId: Id64String = statement.getValue(1).getId();
+        const sensorTypeFederationGuid: GuidString | undefined = this.queryFederationGuid(sensorTypeId);
+        const sensorProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(sensorId);
+        const sensorInstance = this.createObject(sensorProps);
+        if (sensorProps.typeDefinition?.id) {
+          sensorInstance.isOfType = this.buildElementUrn(sensorProps.typeDefinition.id);
+        }
+        const observedElementId: Id64String | undefined = this.queryObservedElement(sensorProps.id!);
+        if (undefined !== observedElementId) {
+          sensorInstance.observes = this.buildElementUrn(observedElementId);
+        }
+        if ((undefined !== sensorTypeFederationGuid) && sensorProps?.jsonProperties?.iot?.sensorTypeIndex) {
+          sensorInstance.deviceId = `${iotSimulationId}.${sensorTypeFederationGuid}.${sensorProps.jsonProperties.iot.sensorTypeIndex}`;
         }
         sensorInstances.push(sensorInstance);
       }
     });
     const container = {
-      observedElements,
+      observedObjects,
+      observationTypes,
       sensorTypes,
       sensorInstances,
     };
     writeLine(outputFileName, JSON.stringify(container, undefined, 2));
+  }
+
+  private queryObservedElement(sensorId: Id64String): Id64String | undefined {
+    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
+    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
+      statement.bindId("sensorId", sensorId);
+      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
+    });
+  }
+
+  private queryFederationGuid(elementId: Id64String): GuidString | undefined {
+    const sql = `SELECT FederationGuid FROM ${Element.classFullName} WHERE ECInstanceId=:elementId`;
+    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
+      statement.bindId("elementId", elementId);
+      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getGuid() : undefined;
+    });
   }
 
   private createObject(elementProps: ElementProps): any {
