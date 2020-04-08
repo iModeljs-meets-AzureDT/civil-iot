@@ -1,5 +1,5 @@
 import { DbResult, Id64, Id64String, Logger, LogLevel, GuidString } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
+import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject } from "@bentley/imodeljs-backend";
 import { ElementProps, GeometricElement3dProps, IModel } from "@bentley/imodeljs-common";
 import { FileSystemUtils } from "./FileSystemUtils";
 import { ObservationTypeProps } from "./IoTDevices";
@@ -14,6 +14,26 @@ function writeLine(outputFileName: string, line: string, indentLevel: number = 0
   IModelJsFs.appendFileSync(outputFileName, line);
   IModelJsFs.appendFileSync(outputFileName, "\n");
 }
+
+interface AdtPropertyDef {
+  "@type": "Property";
+  "name": string;
+  "schema": string;
+}
+
+interface AdtRelationshipDef {
+  "@type": "Relationship";
+  "name": string;
+  "target": string;
+}
+
+interface AdtTelemetryDef {
+  "@type": "Telemetry";
+  "name": string;
+  "schema": string;
+}
+
+type AdtMemberDef = AdtPropertyDef | AdtRelationshipDef | AdtTelemetryDef;
 
 export class Exporter {
   public iModelDb: IModelDb;
@@ -46,10 +66,42 @@ export class Exporter {
       this.exportInstancesOf("BisCore:SpatialElement");
       this.exportInstancesOf("BisCore:GraphicalElement3d");
     }
-    this.exportForADT();
+    this.exportAdtTypes();
+    this.exportForAdt();
   }
 
-  public exportForADT(): void {
+  public exportAdtTypes(): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "adt-types.json");
+    const physicalObjectClass = this.createAdtTypeObject(PhysicalObject.className, [
+      { "@type": "Property", "schema": "string", "name": "name" }, // SpatialElement.CodeValue
+      { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
+    ]);
+    const sensorClass = this.createAdtTypeObject("Sensor", [
+      { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
+      { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
+      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesSpatialElement
+      // WIP: should be an array of ObservationTypes!
+      { "@type": "Property", "schema": "string", "name": "observationLabel1" },
+      { "@type": "Property", "schema": "string", "name": "observationUnit1" },
+      { "@type": "Telemetry", "schema": "double", "name": "observationValue1" },
+      { "@type": "Property", "schema": "string", "name": "observationLabel2" },
+      { "@type": "Property", "schema": "string", "name": "observationUnit2" },
+      { "@type": "Telemetry", "schema": "double", "name": "observationValue2" },
+    ]);
+    writeLine(outputFileName, JSON.stringify([physicalObjectClass, sensorClass], undefined, 2));
+  }
+
+  private createAdtTypeObject(className: string, memberDefs: AdtMemberDef[]): any {
+    return {
+      "@id": this.buildAdtTypeUrn(className),
+      "@type": "Interface",
+      "@context": "http://azure.com/v3/contexts/Model.json",
+      "displayName": className,
+      "contents": memberDefs,
+    };
+  }
+
+  public exportForAdt(): void {
     const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "for-adt.json");
     const iotSimulationId: GuidString = "28f13042-3e04-4025-8e6b-8c1ff0f16def";
     const observedObjects: any[] = [];
@@ -58,8 +110,8 @@ export class Exporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const observedElementId: Id64String = statement.getValue(0).getId();
         const observedElementProps: ElementProps = this.iModelDb.elements.getElementProps(observedElementId);
-        const observedObject = this.createObject(observedElementProps);
-        observedObject.computedValue = 0.0; // will be populated by the Azure Function on the ADT side
+        const observedObject = this.createAdtInstance(observedElementProps);
+        observedObject.computedHealth = 0.0; // will be populated by the Azure Function on the ADT side
         observedObjects.push(observedObject);
       }
     });
@@ -69,7 +121,7 @@ export class Exporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const observationTypeId: Id64String = statement.getValue(0).getId();
         const observationTypeProps: ObservationTypeProps = this.iModelDb.elements.getElementProps(observationTypeId);
-        const observationType = this.createObject(observationTypeProps);
+        const observationType = this.createAdtInstance(observationTypeProps);
         observationType.unit = observationTypeProps.unit;
         observationTypes.push(observationType);
       }
@@ -80,7 +132,7 @@ export class Exporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
         const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        sensorTypes.push(this.createObject(elementProps));
+        sensorTypes.push(this.createAdtInstance(elementProps));
       }
     });
     const sensorInstances: any[] = [];
@@ -91,7 +143,7 @@ export class Exporter {
         const sensorTypeId: Id64String = statement.getValue(1).getId();
         const sensorTypeFederationGuid: GuidString | undefined = this.queryFederationGuid(sensorTypeId);
         const sensorProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(sensorId);
-        const sensorInstance = this.createObject(sensorProps);
+        const sensorInstance = this.createAdtInstance(sensorProps);
         if (sensorProps.typeDefinition?.id) {
           sensorInstance.isOfType = this.buildElementUrn(sensorProps.typeDefinition.id);
         }
@@ -130,13 +182,18 @@ export class Exporter {
     });
   }
 
-  private createObject(elementProps: ElementProps): any {
+  private createAdtInstance(elementProps: ElementProps): any {
     return {
       "@id": this.buildElementUrn(elementProps.id!),
-      "@type": elementProps.classFullName.split(":")[1],
+      "@type": this.buildAdtTypeUrn(elementProps.classFullName.split(":")[1]),
       "name": elementProps.code.value,
       "federationGuid": elementProps.federationGuid,
     };
+  }
+
+  private buildAdtTypeUrn(className: string): string {
+    const versionNumber = 1; // needs to be incremented each time the schema changes after it has been uploaded to ADT
+    return `urn:civil-iot:adt-type:${className}:${versionNumber}`;
   }
 
   private buildContextUrn(): string {
