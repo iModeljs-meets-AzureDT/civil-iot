@@ -1,41 +1,12 @@
-import { DbResult, Id64, Id64String, Logger, LogLevel, GuidString } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject } from "@bentley/imodeljs-backend";
-import { ElementProps, GeometricElement3dProps, IModel } from "@bentley/imodeljs-common";
-import { FileSystemUtils } from "./FileSystemUtils";
-import { ObservationTypeProps } from "./IoTDevices";
+import { DbResult, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
+import { ElementProps, IModel } from "@bentley/imodeljs-common";
 import * as path from "path";
+import { FileSystemUtils } from "./FileSystemUtils";
 
-const loggerCategory = "civil-iot-exporter";
+const loggerCategory = "GenericExporter";
 
-function writeLine(outputFileName: string, line: string, indentLevel: number = 0): void {
-  if (indentLevel > 0) {
-    for (let i = 0; i < indentLevel; i++) { IModelJsFs.appendFileSync(outputFileName, "  "); }
-  }
-  IModelJsFs.appendFileSync(outputFileName, line);
-  IModelJsFs.appendFileSync(outputFileName, "\n");
-}
-
-interface AdtPropertyDef {
-  "@type": "Property";
-  "name": string;
-  "schema": string;
-}
-
-interface AdtRelationshipDef {
-  "@type": "Relationship";
-  "name": string;
-  "target": string;
-}
-
-interface AdtTelemetryDef {
-  "@type": "Telemetry";
-  "name": string;
-  "schema": string;
-}
-
-type AdtMemberDef = AdtPropertyDef | AdtRelationshipDef | AdtTelemetryDef;
-
-export class Exporter {
+export class GenericExporter {
   public iModelDb: IModelDb;
   public outputDir: string;
 
@@ -54,154 +25,16 @@ export class Exporter {
   }
 
   public exportAll(): void {
-    if (false) {
-      this.exportSchemas();
-      this.exportClassCount();
-      this.exportInstancesOf("RoadPhysical:RoadNetwork");
-      this.exportInstancesOf("RailPhysical:RailNetwork");
-      this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
-      this.exportModels();
-      this.exportInstancesWithProperty("Description");
-      this.exportHierarchy();
-      this.exportInstancesOf("BisCore:SpatialElement");
-      this.exportInstancesOf("BisCore:GraphicalElement3d");
-    }
-    this.exportAdtTypes();
-    this.exportForAdt();
-  }
-
-  public exportAdtTypes(): void {
-    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "adt-types.json");
-    const physicalObjectClass = this.createAdtTypeObject(PhysicalObject.className, [
-      { "@type": "Property", "schema": "string", "name": "name" }, // SpatialElement.CodeValue
-      { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
-    ]);
-    const sensorClass = this.createAdtTypeObject("Sensor", [
-      { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
-      { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
-      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesSpatialElement
-      // WIP: should be an array of ObservationTypes!
-      { "@type": "Property", "schema": "string", "name": "observationLabel1" },
-      { "@type": "Property", "schema": "string", "name": "observationUnit1" },
-      { "@type": "Telemetry", "schema": "double", "name": "observationValue1" },
-      { "@type": "Property", "schema": "string", "name": "observationLabel2" },
-      { "@type": "Property", "schema": "string", "name": "observationUnit2" },
-      { "@type": "Telemetry", "schema": "double", "name": "observationValue2" },
-    ]);
-    writeLine(outputFileName, JSON.stringify([physicalObjectClass, sensorClass], undefined, 2));
-  }
-
-  private createAdtTypeObject(className: string, memberDefs: AdtMemberDef[]): any {
-    return {
-      "@id": this.buildAdtTypeUrn(className),
-      "@type": "Interface",
-      "@context": "http://azure.com/v3/contexts/Model.json",
-      "displayName": className,
-      "contents": memberDefs,
-    };
-  }
-
-  public exportForAdt(): void {
-    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "for-adt.json");
-    const iotSimulationId: GuidString = "28f13042-3e04-4025-8e6b-8c1ff0f16def";
-    const observedObjects: any[] = [];
-    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement";
-    this.iModelDb.withPreparedStatement(observedSql, (statement: ECSqlStatement): void => {
-      while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const observedElementId: Id64String = statement.getValue(0).getId();
-        const observedElementProps: ElementProps = this.iModelDb.elements.getElementProps(observedElementId);
-        const observedObject = this.createAdtInstance(observedElementProps);
-        observedObject.computedHealth = 0.0; // will be populated by the Azure Function on the ADT side
-        observedObjects.push(observedObject);
-      }
-    });
-    const observationTypes: any[] = [];
-    const observationTypeSql = "SELECT ECInstanceId FROM IoTDevices:ObservationType";
-    this.iModelDb.withPreparedStatement(observationTypeSql, (statement: ECSqlStatement): void => {
-      while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const observationTypeId: Id64String = statement.getValue(0).getId();
-        const observationTypeProps: ObservationTypeProps = this.iModelDb.elements.getElementProps(observationTypeId);
-        const observationType = this.createAdtInstance(observationTypeProps);
-        observationType.unit = observationTypeProps.unit;
-        observationTypes.push(observationType);
-      }
-    });
-    const sensorTypes: any[] = [];
-    const sensorTypeSql = "SELECT ECInstanceId FROM IoTDevices:SensorType ORDER BY ECInstanceId";
-    this.iModelDb.withPreparedStatement(sensorTypeSql, (statement: ECSqlStatement): void => {
-      while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const elementId: Id64String = statement.getValue(0).getId();
-        const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        sensorTypes.push(this.createAdtInstance(elementProps));
-      }
-    });
-    const sensorInstances: any[] = [];
-    const sensorSql = "SELECT ECInstanceId,TypeDefinition.Id FROM IoTDevices:Sensor ORDER BY ECInstanceId";
-    this.iModelDb.withPreparedStatement(sensorSql, (statement: ECSqlStatement): void => {
-      while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const sensorId: Id64String = statement.getValue(0).getId();
-        const sensorTypeId: Id64String = statement.getValue(1).getId();
-        const sensorTypeFederationGuid: GuidString | undefined = this.queryFederationGuid(sensorTypeId);
-        const sensorProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(sensorId);
-        const sensorInstance = this.createAdtInstance(sensorProps);
-        if (sensorProps.typeDefinition?.id) {
-          sensorInstance.isOfType = this.buildElementUrn(sensorProps.typeDefinition.id);
-        }
-        const observedElementId: Id64String | undefined = this.queryObservedElement(sensorProps.id!);
-        if (undefined !== observedElementId) {
-          sensorInstance.observes = this.buildElementUrn(observedElementId);
-        }
-        if ((undefined !== sensorTypeFederationGuid) && sensorProps?.jsonProperties?.iot?.sensorTypeIndex) {
-          sensorInstance.deviceId = `${iotSimulationId}.${sensorTypeFederationGuid}.${sensorProps.jsonProperties.iot.sensorTypeIndex}`;
-        }
-        sensorInstances.push(sensorInstance);
-      }
-    });
-    const container = {
-      observedObjects,
-      observationTypes,
-      sensorTypes,
-      sensorInstances,
-    };
-    writeLine(outputFileName, JSON.stringify(container, undefined, 2));
-  }
-
-  private queryObservedElement(sensorId: Id64String): Id64String | undefined {
-    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
-    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
-      statement.bindId("sensorId", sensorId);
-      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
-    });
-  }
-
-  private queryFederationGuid(elementId: Id64String): GuidString | undefined {
-    const sql = `SELECT FederationGuid FROM ${Element.classFullName} WHERE ECInstanceId=:elementId`;
-    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
-      statement.bindId("elementId", elementId);
-      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getGuid() : undefined;
-    });
-  }
-
-  private createAdtInstance(elementProps: ElementProps): any {
-    return {
-      "@id": this.buildElementUrn(elementProps.id!),
-      "@type": this.buildAdtTypeUrn(elementProps.classFullName.split(":")[1]),
-      "name": elementProps.code.value,
-      "federationGuid": elementProps.federationGuid,
-    };
-  }
-
-  private buildAdtTypeUrn(className: string): string {
-    const versionNumber = 1; // needs to be incremented each time the schema changes after it has been uploaded to ADT
-    return `urn:civil-iot:adt-type:${className}:${versionNumber}`;
-  }
-
-  private buildContextUrn(): string {
-    return `urn:iModel:${this.iModelDb.iModelId}`;
-  }
-
-  private buildElementUrn(elementId: Id64String): string {
-    return `urn:iModel-element:${this.iModelDb.iModelId}#${elementId}`;
+    this.exportSchemas();
+    this.exportClassCount();
+    this.exportInstancesOf("RoadPhysical:RoadNetwork");
+    this.exportInstancesOf("RailPhysical:RailNetwork");
+    this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
+    this.exportModels();
+    this.exportInstancesWithProperty("Description");
+    this.exportHierarchy();
+    this.exportInstancesOf("BisCore:SpatialElement");
+    this.exportInstancesOf("BisCore:GraphicalElement3d");
   }
 
   public exportSchemas(): void {
@@ -220,7 +53,7 @@ export class Exporter {
         this.iModelDb.withPreparedStatement(`SELECT COUNT(*) FROM ${classFullName}`, (countStatement: ECSqlStatement): void => {
           while (DbResult.BE_SQLITE_ROW === countStatement.step()) {
             const count: number = countStatement.getValue(0).getInteger();
-            writeLine(outputFileName, `${count}, ${classFullName}`);
+            FileSystemUtils.writeLine(outputFileName, `${count}, ${classFullName}`);
           }
         });
       }
@@ -234,7 +67,7 @@ export class Exporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
         const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
+        FileSystemUtils.writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
         // elementExporter.exportElement(elementId);
         // writeLine(outputFileName, "");
       }
@@ -247,7 +80,7 @@ export class Exporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const modelId: Id64String = statement.getValue(0).getId();
         const model: Model = this.iModelDb.models.getModel(modelId);
-        writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${model.name}`);
+        FileSystemUtils.writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${model.name}`);
       }
     });
   }
@@ -302,7 +135,7 @@ export class Exporter {
           const elementId: Id64String = statement.getValue(0).getId();
           const elementProps: ElementProps | undefined = this.iModelDb.elements.tryGetElementProps(elementId);
           if (undefined !== elementProps) {
-            writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
+            FileSystemUtils.writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
           }
         }
       });
@@ -347,7 +180,7 @@ class ElementExporter extends IModelExportHandler {
   protected onExportElement(element: Element, isUpdate: boolean | undefined): void {
     const indentLevel: number = this.getIndentLevelForElement(element) + this._modelIndentLevel;
     // writeLine(this.outputFileName, `${element.classFullName}, ${element.id}, ${element.getDisplayLabel()}`, indentLevel);
-    writeLine(this.outputFileName, JSON.stringify(element));
+    FileSystemUtils.writeLine(this.outputFileName, JSON.stringify(element));
     this.exportSubModel(element.id);
     super.onExportElement(element, isUpdate);
   }
