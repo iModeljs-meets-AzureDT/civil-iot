@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc 1>&2 && npm run copy:assets",
     "clean": "rimraf lib",
-    "copy:assets": "cpx \"./src/*.ecschema.xml\" ./lib/assets/",
+    "copy:assets": "cpx \"./src/assets/**/*\" ./lib/assets/",
     "lint": "tslint --project . 1>&2",
     "start:export": "node ./lib/ExporterMain.js",
     "start:import": "node ./lib/ImporterMain.js"

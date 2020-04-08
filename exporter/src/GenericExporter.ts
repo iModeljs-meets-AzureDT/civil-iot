@@ -1,5 +1,5 @@
 import { DbResult, GuidString, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
+import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject } from "@bentley/imodeljs-backend";
 import { ElementProps, IModel } from "@bentley/imodeljs-common";
 import * as path from "path";
 import { FileSystemUtils } from "./FileSystemUtils";
@@ -25,16 +25,22 @@ export class GenericExporter {
   }
 
   public exportAll(): void {
-    this.exportSchemas();
-    this.exportClassCount();
-    this.exportInstancesOf("RoadPhysical:RoadNetwork");
-    this.exportInstancesOf("RailPhysical:RailNetwork");
-    this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
-    this.exportModels();
-    this.exportInstancesWithProperty("Description");
-    this.exportHierarchy();
-    this.exportInstancesOf("BisCore:SpatialElement");
-    this.exportInstancesOf("BisCore:GraphicalElement3d");
+    if (false) {
+      this.exportSchemas();
+      this.exportClassCount();
+      this.exportInstancesOf("RoadPhysical:RoadNetwork");
+      this.exportInstancesOf("RailPhysical:RailNetwork");
+      this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
+      this.exportModels();
+      this.exportInstancesWithProperty("Description");
+      this.exportHierarchy();
+      this.exportInstancesOf("BisCore:SpatialElement");
+      this.exportInstancesOf("BisCore:GraphicalElement3d");
+    }
+    this.exportInstancesOf("IoTDevices:ObservationType");
+    this.exportInstancesOf("IoTDevices:SensorType");
+    this.exportInstancesOf("IoTDevices:Sensor");
+    this.exportInstancesOf(PhysicalObject.classFullName);
   }
 
   public exportSchemas(): void {
