@@ -85,7 +85,7 @@ export class AdtExporter {
     });
 
     // Sensor instances
-    const iotSimulationId: GuidString = "28f13042-3e04-4025-8e6b-8c1ff0f16def";
+    const iotSimulationId: GuidString = "c210810c-f052-4045-a7ca-aedc8ed699ea";
     const sensorInstances: any[] = [];
     const sensorSql = "SELECT ECInstanceId,TypeDefinition.Id FROM IoTDevices:Sensor ORDER BY ECInstanceId";
     this.iModelDb.withPreparedStatement(sensorSql, (statement: ECSqlStatement): void => {

@@ -16,7 +16,7 @@ export class FileSystemUtils {
   /** Write the specified line and a newline character to the specified output file. */
   public static writeLine(outputFileName: string, line: string, indentLevel: number = 0): void {
     if (indentLevel > 0) {
-      for (let i = 0; i < indentLevel; i++) { IModelJsFs.appendFileSync(outputFileName, "  "); }
+      for (let i = 0; i < indentLevel; i++) { IModelJsFs.appendFileSync(outputFileName, "+ "); }
     }
     IModelJsFs.appendFileSync(outputFileName, line);
     IModelJsFs.appendFileSync(outputFileName, "\n");

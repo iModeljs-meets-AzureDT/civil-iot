@@ -41,6 +41,7 @@ export class GenericExporter {
     this.exportInstancesOf("IoTDevices:SensorType");
     this.exportInstancesOf("IoTDevices:Sensor");
     this.exportInstancesOf(PhysicalObject.classFullName);
+    this.exportCompositionHierarchy();
   }
 
   public exportSchemas(): void {
@@ -62,6 +63,19 @@ export class GenericExporter {
             FileSystemUtils.writeLine(outputFileName, `${count}, ${classFullName}`);
           }
         });
+      }
+    });
+  }
+
+  public exportCompositionHierarchy(classFullName: string = "RoadNetworkComposition:CompositionItem"): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "CompositionHierarchy.txt");
+    const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
+    const sql = `SELECT ECInstanceId FROM ${classFullName} WHERE Parent.Id IS NULL`;
+    this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): void => {
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        const elementId: Id64String = statement.getValue(0).getId();
+        elementExporter.exportElement(elementId);
+        FileSystemUtils.writeLine(outputFileName, "");
       }
     });
   }
@@ -193,8 +207,8 @@ class ElementExporter extends IModelExportHandler {
   }
   protected onExportElement(element: Element, isUpdate: boolean | undefined): void {
     const indentLevel: number = this.getIndentLevelForElement(element) + this._modelIndentLevel;
-    // writeLine(this.outputFileName, `${element.classFullName}, ${element.id}, ${element.getDisplayLabel()}`, indentLevel);
-    FileSystemUtils.writeLine(this.outputFileName, JSON.stringify(element));
+    FileSystemUtils.writeLine(this.outputFileName, `${element.getDisplayLabel()}, ${element.className}, ${element.id}`, indentLevel);
+    // FileSystemUtils.writeLine(this.outputFileName, JSON.stringify(element));
     this.exportSubModel(element.id);
     super.onExportElement(element, isUpdate);
   }

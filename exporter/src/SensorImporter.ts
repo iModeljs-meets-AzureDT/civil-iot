@@ -1,8 +1,9 @@
 import { GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
-import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
-import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, Placement3dProps, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
+import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ElementOwnsChildElements, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject, GeometricElement3dHasTypeDefinition } from "@bentley/imodeljs-backend";
+import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, Placement3dProps, RelatedElement, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import { ObservationTypeProps } from "./IoTDevices";
+import { CompositionItemProps, RoadNetworkClassification } from "./RoadNetworkComposition";
 
 const loggerCategory = "sensor-importer";
 
@@ -10,12 +11,14 @@ export class SensorImporter {
   private _iModelDb: IModelDb;
   private _physicalModelId!: Id64String;
   private _definitionModelId!: Id64String;
+  private _compositionModelId!: Id64String;
   private _sensorCategoryId!: Id64String;
   private _physicalObjectCategoryId!: Id64String;
   private _sensorTypeCodeSpecId!: Id64String;
   private _observationTypeCodeSpecId!: Id64String;
   private _sensorCodeSpecId!: Id64String;
   private _physicalObjectCodeSpecId!: Id64String;
+  private _compositionCodeSpecId!: Id64String;
 
   public constructor(iModelDb: IModelDb) {
     this._iModelDb = iModelDb;
@@ -44,6 +47,7 @@ export class SensorImporter {
     this._sensorTypeCodeSpecId = this._iModelDb.codeSpecs.insert("SensorType", CodeScopeSpec.Type.Model);
     this._observationTypeCodeSpecId = this._iModelDb.codeSpecs.insert("ObservationType", CodeScopeSpec.Type.Model);
     this._sensorCodeSpecId = this._iModelDb.codeSpecs.insert("Sensor", CodeScopeSpec.Type.Repository);
+    this._compositionCodeSpecId = this._iModelDb.codeSpecs.insert("Composition", CodeScopeSpec.Type.Repository);
     this._physicalObjectCodeSpecId = this._iModelDb.codeSpecs.insert("PhysicalObject", CodeScopeSpec.Type.Repository);
   }
 
@@ -51,6 +55,7 @@ export class SensorImporter {
     const subjectId: Id64String = Subject.insert(this._iModelDb, IModel.rootSubjectId, "Sensors");
     this._definitionModelId = DefinitionModel.insert(this._iModelDb, subjectId, "Definitions");
     this._physicalModelId = PhysicalModel.insert(this._iModelDb, subjectId, "Physical");
+    this._compositionModelId = GroupModel.insert(this._iModelDb, subjectId, "Composition");
   }
 
   private insertCategories(): void {
@@ -75,11 +80,42 @@ export class SensorImporter {
         this.insertPhysicalObject(physicalObjectData.name, physicalObjectData.size, physicalObjectData.placement);
       });
     }
-    if (inputData.sensors) {
-      inputData.sensors.forEach((sensorData: any) => {
-        this.insertSensor(sensorData.type, sensorData.name, sensorData.origin, sensorData.observes);
+    if (inputData.compositions) {
+      inputData.compositions.forEach((compositionData: any) => {
+        this.insertCompositionElement(compositionData.name, compositionData.type, compositionData.classification, compositionData.parent);
       });
     }
+    if (inputData.sensors) {
+      inputData.sensors.forEach((sensorData: any) => {
+        this.insertSensor(sensorData.name, sensorData.type, sensorData.origin, sensorData.observes);
+      });
+    }
+  }
+
+  private insertCompositionElement(name: string, className: string, classification: RoadNetworkClassification, parentIdOrCode?: Id64String | string): Id64String {
+    let parent: RelatedElement | undefined;
+    if (parentIdOrCode) {
+      if (Id64.isValidId64(parentIdOrCode)) {
+        parent = new ElementOwnsChildElements(parentIdOrCode);
+      } else {
+        const parentId: Id64String | undefined = this.tryQueryCompositionElementByCode(parentIdOrCode);
+        if (undefined !== parentId) {
+          parent = new ElementOwnsChildElements(parentId);
+        }
+      }
+    }
+    const elementProps: CompositionItemProps = {
+      classFullName: `RoadNetworkComposition:${className}`,
+      model: this._compositionModelId,
+      code: { spec: this._compositionCodeSpecId, scope: IModel.rootSubjectId, value: name },
+      parent,
+      classification,
+    };
+    return this._iModelDb.elements.insertElement(elementProps);
+  }
+
+  private tryQueryCompositionElementByCode(codeValue: string): Id64String | undefined {
+    return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._compositionCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
   private insertPhysicalObject(name: string, size: XYZProps, placement: Placement3dProps): Id64String {
@@ -93,6 +129,10 @@ export class SensorImporter {
       geom: boxGeometry,
     };
     return this._iModelDb.elements.insertElement(elementProps);
+  }
+
+  private tryQueryPhysicalObjectByCode(codeValue: string): Id64String | undefined {
+    return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
   private insertSensorType(name: string, federationGuid: GuidString, observationTypeIdsOrCodes: Id64String[] | string[]): Id64String {
@@ -112,6 +152,10 @@ export class SensorImporter {
       });
     });
     return sensorTypeId;
+  }
+
+  private tryQuerySensorTypeByCode(codeValue: string): Id64String | undefined {
+    return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._sensorTypeCodeSpecId, scope: this._definitionModelId, value: codeValue }));
   }
 
   private insertObservationType(codeValue: string, unit: string, minValue?: number, maxValue?: number): Id64String {
@@ -138,17 +182,25 @@ export class SensorImporter {
     return observationTypeId;
   }
 
-  private insertSensor(sensorTypeId: Id64String, name: string, origin: XYZProps, physicalObjectIdOrCode: Id64String | string): Id64String {
-    const sensorTypeIndex: number = this.getNextSensorTypeIndex(sensorTypeId);
+  private insertSensor(name: string, sensorTypeIdOrCode: Id64String | string, origin: XYZProps, physicalObjectIdOrCode: Id64String | string): Id64String {
+    let sensorType: RelatedElement | undefined;
+    if (Id64.isValidId64(sensorTypeIdOrCode)) {
+      sensorType = new GeometricElement3dHasTypeDefinition(sensorTypeIdOrCode);
+    } else {
+      const sensorTypeId: Id64String | undefined = this.tryQuerySensorTypeByCode(sensorTypeIdOrCode);
+      if (undefined !== sensorTypeId) {
+        sensorType = new GeometricElement3dHasTypeDefinition(sensorTypeId);
+      }
+    }
     const sensorProps: GeometricElement3dProps = {
       classFullName: "IoTDevices:Sensor",
       model: this._physicalModelId,
       category: this._sensorCategoryId,
       code: { spec: this._sensorCodeSpecId, scope: IModel.rootSubjectId, value: name },
-      typeDefinition: { id: sensorTypeId },
       placement: { origin, angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: this.createSensorGeometry(0.2),
-      jsonProperties: { iot: { sensorTypeIndex } },
+      typeDefinition: sensorType,
+      jsonProperties: sensorType ? { iot: { sensorTypeIndex: this.getNextSensorTypeIndex(sensorType.id) } } : undefined,
     };
     const sensorId: Id64String = this._iModelDb.elements.insertElement(sensorProps);
     const physicalObjectId = Id64.isValidId64(physicalObjectIdOrCode) ? physicalObjectIdOrCode : this.tryQueryPhysicalObjectByCode(physicalObjectIdOrCode);
@@ -160,10 +212,6 @@ export class SensorImporter {
       });
     }
     return sensorId;
-  }
-
-  private tryQueryPhysicalObjectByCode(codeValue: string): Id64String | undefined {
-    return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
   private _sensorTypeIndexMap = new Map<Id64String, number>();

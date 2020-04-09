@@ -3,20 +3,27 @@
 
   <ECSchemaReference name="BisCore" version="01.00.04" alias="bis"/>
 
-  <ECEntityClass typeName="RoadNetwork" displayLabel="Road Network">
+  <ECEnumeration typeName="RoadNetworkClassification" backingTypeName="string" isStrict="true">
+    <ECEnumerator value="National"/>
+    <ECEnumerator value="State"/>
+    <ECEnumerator value="Local"/>
+  </ECEnumeration>
+
+  <ECEntityClass typeName="CompositionItem" modifier="Abstract">
     <BaseClass>bis:GroupInformationElement</BaseClass>
+    <ECProperty propertyName="Classification" typeName="RoadNetworkClassification"/>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="RoadNetwork" displayLabel="Road Network">
+    <BaseClass>CompositionItem</BaseClass>
   </ECEntityClass>
 
   <ECEntityClass typeName="Travelway" modifier="Abstract">
     <!-- Optionally parented to RoadNetwork -->
-    <BaseClass>bis:GroupInformationElement</BaseClass>
+    <BaseClass>CompositionItem</BaseClass>
   </ECEntityClass>
 
-  <ECEntityClass typeName="PrimaryRoadway">
-    <BaseClass>Travelway</BaseClass>
-  </ECEntityClass>
-
-  <ECEntityClass typeName="SecondaryRoadway">
+  <ECEntityClass typeName="Roadway">
     <BaseClass>Travelway</BaseClass>
   </ECEntityClass>
 
@@ -26,7 +33,7 @@
 
   <ECEntityClass typeName="TravelwaySegment" modifier="Abstract" displayLabel="Travelway Segment">
     <!-- Parented to Travelway -->
-    <BaseClass>bis:GroupInformationElement</BaseClass>
+    <BaseClass>CompositionItem</BaseClass>
   </ECEntityClass>
 
   <ECEntityClass typeName="Tunnel">
@@ -37,7 +44,7 @@
     <BaseClass>TravelwaySegment</BaseClass>
   </ECEntityClass>
 
-  <ECEntityClass typeName="RoadSegement" displayLabel="Road Segment">
+  <ECEntityClass typeName="RoadSegment" displayLabel="Road Segment">
     <BaseClass>TravelwaySegment</BaseClass>
   </ECEntityClass>
 
