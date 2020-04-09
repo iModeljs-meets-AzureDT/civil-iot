@@ -14,6 +14,7 @@ import {
 import { BeEvent } from "@bentley/bentleyjs-core";
 import { CivilDataModel, CivilComponentProps, CivilDataModelLevel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
+import { SidePanelContainer } from "../SidePanelContainer/SidePanelContainer";
 
 interface CivilBrowserProps {
   imodel: IModelConnection;
@@ -37,14 +38,11 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, {}> {
   public render() {
     return (
       <>
-        <div className="civil-browser">
-          <div className="civil-browser-title">
-            <span>Digital Twin</span>
-          </div>
+        <SidePanelContainer title="Model Breakdown">
           <div className="civil-browser-tree">
             <CivilBrowserTree onNodeSelected={this._treeNodeSelected} />
           </div>
-        </div>
+        </SidePanelContainer>
       </>
     );
   }
