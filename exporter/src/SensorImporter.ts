@@ -1,7 +1,7 @@
-import { GuidString, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
-import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, IModelDb, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
-import { AxisAlignedBox3d, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
+import { GuidString, Id64String, Logger, LogLevel, Id64, IModelStatus } from "@bentley/bentleyjs-core";
+import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps, XYAndZ } from "@bentley/geometry-core";
+import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, IModelDb, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject, IModelJsFs, SpatialLocation } from "@bentley/imodeljs-backend";
+import { AxisAlignedBox3d, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, TypeDefinitionElementProps, Code, IModelError, Placement3dProps } from "@bentley/imodeljs-common";
 import * as path from "path";
 import { ObservationTypeProps } from "./IoTDevices";
 
@@ -12,11 +12,11 @@ export class SensorImporter {
   private _physicalModelId!: Id64String;
   private _definitionModelId!: Id64String;
   private _sensorCategoryId!: Id64String;
-  private _physicalObjectCategoryId!: Id64String;
+  private _spatialLocationCategoryId!: Id64String;
   private _sensorTypeCodeSpecId!: Id64String;
   private _observationTypeCodeSpecId!: Id64String;
   private _sensorCodeSpecId!: Id64String;
-  private _physicalObjectCodeSpecId!: Id64String;
+  private _spatialLocationCodeSpecId!: Id64String;
 
   public constructor(iModelDb: IModelDb) {
     this._iModelDb = iModelDb;
@@ -27,27 +27,26 @@ export class SensorImporter {
     }
   }
 
-  public async import(): Promise<void> {
-    await this.importSchema();
+  public async import(schemaFiles: string[], inputDataFile: string): Promise<void> {
+    await this.importSchema(schemaFiles);
     this.insertCodeSpecs();
     this.insertRepositoryModelHierarchy();
-    this.insertSensorCategory();
-    this.insertPhysicalObjectCategory();
-    this.insertSampleData();
+    this.insertCategories();
+    this.insertData(inputDataFile);
+    // this.insertSampleData();
     this.updateProjectExtents();
     this.insertView();
   }
 
-  private async importSchema(): Promise<void> {
-    const schemaFileName = path.join(__dirname, "assets", "IoTDevices.ecschema.xml");
-    await this._iModelDb.importSchemas(new BackendRequestContext(), [schemaFileName]);
+  private async importSchema(schemaFiles: string[]): Promise<void> {
+    await this._iModelDb.importSchemas(new BackendRequestContext(), schemaFiles);
   }
 
   private insertCodeSpecs(): void {
     this._sensorTypeCodeSpecId = this._iModelDb.codeSpecs.insert("SensorType", CodeScopeSpec.Type.Model);
     this._observationTypeCodeSpecId = this._iModelDb.codeSpecs.insert("ObservationType", CodeScopeSpec.Type.Model);
     this._sensorCodeSpecId = this._iModelDb.codeSpecs.insert("Sensor", CodeScopeSpec.Type.Repository);
-    this._physicalObjectCodeSpecId = this._iModelDb.codeSpecs.insert("PhysicalObject", CodeScopeSpec.Type.Repository);
+    this._spatialLocationCodeSpecId = this._iModelDb.codeSpecs.insert("PhysicalObject", CodeScopeSpec.Type.Repository);
   }
 
   private insertRepositoryModelHierarchy(): void {
@@ -56,12 +55,46 @@ export class SensorImporter {
     this._physicalModelId = PhysicalModel.insert(this._iModelDb, subjectId, "Physical");
   }
 
-  private insertSensorCategory(): void {
+  private insertCategories(): void {
+    this._spatialLocationCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Spatial Locations", { color: ColorDef.green });
     this._sensorCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Sensors", { color: ColorDef.from(255, 255, 0) });
   }
 
-  private insertPhysicalObjectCategory(): void {
-    this._physicalObjectCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Physical Objects", { color: ColorDef.green });
+  private insertData(inputDataFile: string): void {
+    const inputData = JSON.parse(IModelJsFs.readFileSync(inputDataFile) as string);
+    if (inputData.observationTypes) {
+      inputData.observationTypes.forEach((observationTypeData: any) => {
+        this.insertObservationType(observationTypeData.name, observationTypeData.unit);
+      });
+    }
+    if (inputData.sensorTypes) {
+      inputData.sensorTypes.forEach((sensorTypeData: any) => {
+        this.insertSensorType(sensorTypeData.name, sensorTypeData.federationGuid, sensorTypeData.observationTypes);
+      });
+    }
+    if (inputData.spatialLocations) {
+      inputData.spatialLocations.forEach((spatialLocationData: any) => {
+        this.insertSpatialLocation(spatialLocationData.name, spatialLocationData.size, spatialLocationData.placement);
+      });
+    }
+    if (inputData.sensors) {
+      inputData.sensors.forEach((sensorData: any) => {
+        this.insertSensor(sensorData.type, sensorData.name, sensorData.origin, sensorData.observes);
+      });
+    }
+  }
+
+  private insertSpatialLocation(name: string, size: XYZProps, placement: Placement3dProps): Id64String {
+    const boxGeometry: GeometryStreamProps = this.createBox(size);
+    const elementProps: GeometricElement3dProps = {
+      classFullName: SpatialLocation.classFullName,
+      model: this._physicalModelId,
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: name },
+      placement,
+      geom: boxGeometry,
+    };
+    return this._iModelDb.elements.insertElement(elementProps);
   }
 
   private insertSampleData(): void {
@@ -71,8 +104,8 @@ export class SensorImporter {
     const southTunnelProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "T1-SB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "T1-SB" },
       placement: { origin: [0, 0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: tunnelGeometry,
     };
@@ -80,8 +113,8 @@ export class SensorImporter {
     const northTunnelProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "T1-NB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "T1-NB" },
       placement: { origin: [0, 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: tunnelGeometry,
     };
@@ -115,8 +148,8 @@ export class SensorImporter {
     const southRoadProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "R1-SB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "R1-SB" },
       placement: { origin: [tunnelSize.x, 0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: roadGeometry,
     };
@@ -124,8 +157,8 @@ export class SensorImporter {
     const northRoadProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "R1-NB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "R1-NB" },
       placement: { origin: [tunnelSize.x, 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
       geom: roadGeometry,
     };
@@ -145,19 +178,19 @@ export class SensorImporter {
     const southBridgeProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-SB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-SB" },
       placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: this.createBox(bridgeSize),
+      geom: bridgeGeometry,
     };
     const southBridgeId: Id64String = this._iModelDb.elements.insertElement(southBridgeProps);
     const northBridgeProps: GeometricElement3dProps = {
       classFullName: PhysicalObject.classFullName,
       model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-NB" },
+      category: this._spatialLocationCategoryId,
+      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-NB" },
       placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0 + 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: this.createBox(bridgeSize),
+      geom: bridgeGeometry,
     };
     const northBridgeId: Id64String = this._iModelDb.elements.insertElement(northBridgeProps);
 
@@ -170,7 +203,7 @@ export class SensorImporter {
     // These observations roll up into the computed "Bridge Safety" metric in ADT
   }
 
-  private insertSensorType(name: string, federationGuid: GuidString, observationTypes: Id64String[]): Id64String {
+  private insertSensorType(name: string, federationGuid: GuidString, observationTypeIdsOrCodes: Id64String[] | string[]): Id64String {
     const sensorTypeProps: TypeDefinitionElementProps = {
       classFullName: "IoTDevices:SensorType",
       model: this._definitionModelId,
@@ -178,7 +211,8 @@ export class SensorImporter {
       federationGuid,
     };
     const sensorTypeId: Id64String = this._iModelDb.elements.insertElement(sensorTypeProps);
-    observationTypes.forEach((observationTypeId: Id64String) => {
+    observationTypeIdsOrCodes.forEach((idOrCode: Id64String | string) => {
+      const observationTypeId: Id64String = Id64.isValidId64(idOrCode) ? idOrCode : this.queryObservationTypeByCode(idOrCode);
       this._iModelDb.relationships.insertInstance({
         classFullName: "IoTDevices:SensorTypeHasObservationTypes",
         sourceId: sensorTypeId,
@@ -200,7 +234,19 @@ export class SensorImporter {
     return this._iModelDb.elements.insertElement(observationTypeProps);
   }
 
-  private insertSensor(sensorTypeId: Id64String, name: string, origin: XYZProps, physicalObjectId: Id64String): Id64String {
+  private queryObservationTypeByCode(codeValue: string): Id64String {
+    const observationTypeId: Id64String | undefined = this._iModelDb.elements.queryElementIdByCode(new Code({
+      spec: this._observationTypeCodeSpecId,
+      scope: this._definitionModelId,
+      value: codeValue,
+    }));
+    if (undefined === observationTypeId) {
+      throw new IModelError(IModelStatus.NotFound, `ObservationType "${codeValue}" not found.`);
+    }
+    return observationTypeId;
+  }
+
+  private insertSensor(sensorTypeId: Id64String, name: string, origin: XYZProps, physicalObjectIdOrCode: Id64String | string): Id64String {
     const sensorTypeIndex: number = this.getNextSensorTypeIndex(sensorTypeId);
     const sensorProps: GeometricElement3dProps = {
       classFullName: "IoTDevices:Sensor",
@@ -213,6 +259,7 @@ export class SensorImporter {
       jsonProperties: { iot: { sensorTypeIndex } },
     };
     const sensorId: Id64String = this._iModelDb.elements.insertElement(sensorProps);
+    const physicalObjectId = Id64.isValidId64(physicalObjectIdOrCode) ? physicalObjectIdOrCode : this.tryQueryPhysicalObjectByCode(physicalObjectIdOrCode);
     if (undefined !== physicalObjectId) {
       this._iModelDb.relationships.insertInstance({
         classFullName: "IoTDevices:SensorObservesSpatialElement",
@@ -221,6 +268,10 @@ export class SensorImporter {
       });
     }
     return sensorId;
+  }
+
+  private tryQueryPhysicalObjectByCode(codeValue: string): Id64String | undefined {
+    return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
   private _sensorTypeIndexMap = new Map<Id64String, number>();
@@ -242,7 +293,8 @@ export class SensorImporter {
     return geometryStreamBuilder.geometryStream;
   }
 
-  private createBox(size: Point3d): GeometryStreamProps {
+  private createBox(xyzProps: XYZProps): GeometryStreamProps {
+    const size = Point3d.fromJSON(xyzProps);
     const geometryStreamBuilder = new GeometryStreamBuilder();
     geometryStreamBuilder.appendGeometry(Box.createDgnBox(Point3d.createZero(), Vector3d.unitX(), Vector3d.unitY(), new Point3d(0, 0, size.z), size.x, size.y, size.x, size.y, true)!);
     return geometryStreamBuilder.geometryStream;
@@ -252,7 +304,7 @@ export class SensorImporter {
     const physicalModel: PhysicalModel = this._iModelDb.models.getModel<PhysicalModel>(this._physicalModelId);
     const viewExtents: AxisAlignedBox3d = physicalModel.queryExtents();
     const modelSelectorId = ModelSelector.insert(this._iModelDb, this._definitionModelId, "Sensor Models", [this._physicalModelId]);
-    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, "Sensor Categories", [this._sensorCategoryId, this._physicalObjectCategoryId]);
+    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, "Sensor Categories", [this._sensorCategoryId, this._spatialLocationCategoryId]);
     const displayStyleId = DisplayStyle3d.insert(this._iModelDb, this._definitionModelId, "Display Style");
     const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, "Sensor View", modelSelectorId, categorySelectorId, displayStyleId, viewExtents, StandardViewIndex.Iso);
     this._iModelDb.views.setDefaultViewId(viewId);
