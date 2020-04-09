@@ -33,7 +33,6 @@ export class SensorImporter {
     this.insertRepositoryModelHierarchy();
     this.insertCategories();
     this.insertData(inputDataFile);
-    // this.insertSampleData();
     this.updateProjectExtents();
     this.insertView();
   }
@@ -95,112 +94,6 @@ export class SensorImporter {
       geom: boxGeometry,
     };
     return this._iModelDb.elements.insertElement(elementProps);
-  }
-
-  private insertSampleData(): void {
-    // tunnel physical object
-    const tunnelSize = Point3d.create(250, 40, 15);
-    const tunnelGeometry: GeometryStreamProps = this.createBox(tunnelSize);
-    const southTunnelProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "T1-SB" },
-      placement: { origin: [0, 0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: tunnelGeometry,
-    };
-    const southTunnelId: Id64String = this._iModelDb.elements.insertElement(southTunnelProps);
-    const northTunnelProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "T1-NB" },
-      placement: { origin: [0, 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: tunnelGeometry,
-    };
-    const northTunnelId: Id64String = this._iModelDb.elements.insertElement(northTunnelProps);
-
-    // tunnel sensors
-    const coId: Id64String = this.insertObservationType("CO", "ppm");
-    const no2Id: Id64String = this.insertObservationType("NO2", "ppb");
-    const exteriorAirId: Id64String = this.insertSensorType("Baseline Air Sensor", "2b91d7d0-9fd3-4f8b-9af3-2a400b7caee5", [coId, no2Id]);
-    const interiorAirId: Id64String = this.insertSensorType("Tunnel Air Sensor", "b92a49e4-f653-4e35-9c81-280d8efea5e9", [coId, no2Id]);
-    const tempId: Id64String = this.insertObservationType("Temperature", "degrees Celsius");
-    const exteriorTempId: Id64String = this.insertSensorType("Exterior Thermometer", "ea174023-ee9e-480c-a70e-faf308d1241f", [tempId]);
-    const interiorTempId: Id64String = this.insertSensorType("Interior Thermometer", "a1e8a9e4-27a6-4bb3-981f-61173c06a935", [tempId]);
-    this.insertSensor(interiorAirId, "T1-SB-INT-AIR-1", [tunnelSize.x / 3.0, 0, 10], southTunnelId);
-    this.insertSensor(interiorAirId, "T1-SB-INT-AIR-2", [2 * tunnelSize.x / 3.0, 0, 10], southTunnelId);
-    this.insertSensor(interiorTempId, "T1-SB-INT-TEMP-1", [tunnelSize.x / 3.0, tunnelSize.y, 10], southTunnelId);
-    this.insertSensor(interiorTempId, "T1-SB-INT-TEMP-2", [2 * tunnelSize.x / 3.0, tunnelSize.y, 10], southTunnelId);
-    this.insertSensor(exteriorAirId, "T1-SB-EXT-AIR-1", [0, tunnelSize.y / 3.0, tunnelSize.z], southTunnelId);
-    this.insertSensor(exteriorTempId, "T1-SB-EXT-TEMP-1", [0, 2 * tunnelSize.y / 3.0, tunnelSize.z], southTunnelId);
-    this.insertSensor(interiorAirId, "T1-NB-INT-AIR-1", [tunnelSize.x / 3.0, 60, 10], northTunnelId);
-    this.insertSensor(interiorAirId, "T1-NB-INT-AIR-2", [2 * tunnelSize.x / 3.0, 60, 10], northTunnelId);
-    this.insertSensor(interiorTempId, "T1-NB-INT-TEMP-1", [tunnelSize.x / 3.0, 60 + tunnelSize.y, 10], northTunnelId);
-    this.insertSensor(interiorTempId, "T1-NB-INT-TEMP-2", [2 * tunnelSize.x / 3.0, 60 + tunnelSize.y, 10], northTunnelId);
-    this.insertSensor(exteriorAirId, "T1-NB-EXT-AIR-1", [tunnelSize.x, 60 + tunnelSize.y / 3.0, tunnelSize.z], northTunnelId);
-    this.insertSensor(exteriorTempId, "T1-NB-EXT-TEMP-1", [tunnelSize.x, 60 + 2 * tunnelSize.y / 3.0, tunnelSize.z], northTunnelId);
-    // These observations roll up into the computed "Tunnel Air Quality" metric in ADT
-
-    // road physical object
-    const roadSize = Point3d.create(500, 40, 0.1);
-    const roadGeometry: GeometryStreamProps = this.createBox(roadSize);
-    const southRoadProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "R1-SB" },
-      placement: { origin: [tunnelSize.x, 0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: roadGeometry,
-    };
-    const southRoadId: Id64String = this._iModelDb.elements.insertElement(southRoadProps);
-    const northRoadProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "R1-NB" },
-      placement: { origin: [tunnelSize.x, 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: roadGeometry,
-    };
-    const northRoadId: Id64String = this._iModelDb.elements.insertElement(northRoadProps);
-
-    // road sensors
-    const vehicleCountId: Id64String = this.insertObservationType("Vehicle Count", "average per hour");
-    const truckCountId: Id64String = this.insertObservationType("Truck Count", "average per hour");
-    const vehicleCounterId: Id64String = this.insertSensorType("Vehicle Counter", "dd143ee4-9f0d-4ebc-b844-1f335647dd86", [vehicleCountId, truckCountId]);
-    this.insertSensor(vehicleCounterId, "R1-SB-VC1", [tunnelSize.x + roadSize.x / 2.0, roadSize.y, 0.1], southRoadId);
-    this.insertSensor(vehicleCounterId, "R1-NB-VC1", [tunnelSize.x + roadSize.x / 2.0, 60, 0.1], northRoadId);
-    // These observations roll up into the computed "Traffic Flow" metric in ADT
-
-    // bridge physical object
-    const bridgeSize = Point3d.create(250, 50, 0.1);
-    const bridgeGeometry: GeometryStreamProps = this.createBox(bridgeSize);
-    const southBridgeProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-SB" },
-      placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: bridgeGeometry,
-    };
-    const southBridgeId: Id64String = this._iModelDb.elements.insertElement(southBridgeProps);
-    const northBridgeProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._spatialLocationCategoryId,
-      code: { spec: this._spatialLocationCodeSpecId, scope: IModel.rootSubjectId, value: "BR1-NB" },
-      placement: { origin: [tunnelSize.x + roadSize.x, (roadSize.y - bridgeSize.y) / 2.0 + 60, 0], angles: { yaw: 0, pitch: 0, roll: 0 } },
-      geom: bridgeGeometry,
-    };
-    const northBridgeId: Id64String = this._iModelDb.elements.insertElement(northBridgeProps);
-
-    // bridge sensors
-    const deflectionId: Id64String = this.insertObservationType("Deflection", "mm");
-    const vibrationId: Id64String = this.insertObservationType("Vibration Amplitude", "g");
-    const bridgeSensorTypeId: Id64String = this.insertSensorType("Bridge Sensor", "9adddb0e-1b6b-4399-92c8-b6322a57d028", [deflectionId, vibrationId]);
-    this.insertSensor(bridgeSensorTypeId, "BR1-SB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0, 0.1], southBridgeId);
-    this.insertSensor(bridgeSensorTypeId, "BR1-NB-BS-1", [tunnelSize.x + roadSize.x + bridgeSize.x / 2.0, (roadSize.y - bridgeSize.y) / 2.0 + bridgeSize.y + 60, 0.1], northBridgeId);
-    // These observations roll up into the computed "Bridge Safety" metric in ADT
   }
 
   private insertSensorType(name: string, federationGuid: GuidString, observationTypeIdsOrCodes: Id64String[] | string[]): Id64String {
