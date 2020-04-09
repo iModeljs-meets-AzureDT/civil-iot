@@ -4,6 +4,7 @@ import "./SidePanelContainer.scss";
 
 export interface SidePanelContainerProps {
   title?: string;
+  onBackButton(): void;
 }
 
 /*
@@ -18,7 +19,7 @@ export class SidePanelContainer extends React.Component<
         <div className={"side-panel-container-header"}>
           <div
             className="side-panel-container-back"
-            onClick={this._onBackButton}
+            onClick={this.props.onBackButton}
             title={"Back"}
           >
             <Icon iconSpec={"icon-chevron-left"}></Icon>
@@ -30,8 +31,5 @@ export class SidePanelContainer extends React.Component<
         <div className="side-panel-container-contents">{this.props.children}</div>
       </div >
     );
-  }
-
-  private _onBackButton = () => {
   }
 }

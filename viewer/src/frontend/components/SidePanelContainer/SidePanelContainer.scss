@@ -1,5 +1,14 @@
 @import "@bentley/ui-core/lib/ui-core/index";
 
+div.max-height {
+  height: 400px;
+  max-height: 100%;
+}
+
+div.max-width {
+  width: 100%;
+}
+
 .side-panel-container-header {
   height: 50px;
   display: flex;
