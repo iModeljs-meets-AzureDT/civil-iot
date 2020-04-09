@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ECSchema schemaName="RoadNetworkComposition" alias="rnc" version="01.00.00" xmlns="http://www.bentley.com/schemas/Bentley.ECXML.3.1" displayLabel="Road Network Composition" description="Classes and relationships for Road Network Composition">
+
+  <ECSchemaReference name="BisCore" version="01.00.04" alias="bis"/>
+
+  <ECEntityClass typeName="RoadNetwork" displayLabel="Road Network">
+    <BaseClass>bis:GroupInformationElement</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="Travelway" modifier="Abstract">
+    <!-- Optionally parented to RoadNetwork -->
+    <BaseClass>bis:GroupInformationElement</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="PrimaryRoadway">
+    <BaseClass>Travelway</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="SecondaryRoadway">
+    <BaseClass>Travelway</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="Ramp">
+    <BaseClass>Travelway</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="TravelwaySegment" modifier="Abstract" displayLabel="Travelway Segment">
+    <!-- Parented to Travelway -->
+    <BaseClass>bis:GroupInformationElement</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="Tunnel">
+    <BaseClass>TravelwaySegment</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="Bridge">
+    <BaseClass>TravelwaySegment</BaseClass>
+  </ECEntityClass>
+
+  <ECEntityClass typeName="RoadSegement" displayLabel="Road Segment">
+    <BaseClass>TravelwaySegment</BaseClass>
+  </ECEntityClass>
+
+</ECSchema>

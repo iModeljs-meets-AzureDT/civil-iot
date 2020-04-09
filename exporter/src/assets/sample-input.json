@@ -77,10 +77,102 @@
       ]
     }
   ],
+  "physicalObjects": [
+    {
+      "name": "T1-SB",
+      "size": [
+        250,
+        40,
+        15
+      ],
+      "placement": {
+        "origin": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "T1-NB",
+      "size": [
+        250,
+        40,
+        15
+      ],
+      "placement": {
+        "origin": [
+          0,
+          60,
+          0
+        ]
+      }
+    },
+    {
+      "name": "R1-SB",
+      "size": [
+        500,
+        40,
+        0.1
+      ],
+      "placement": {
+        "origin": [
+          250,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "R1-NB",
+      "size": [
+        500,
+        40,
+        0.1
+      ],
+      "placement": {
+        "origin": [
+          250,
+          60,
+          0
+        ]
+      }
+    },
+    {
+      "name": "BR1-SB",
+      "size": [
+        250,
+        50,
+        0.1
+      ],
+      "placement": {
+        "origin": [
+          750,
+          -5,
+          0
+        ]
+      }
+    },
+    {
+      "name": "BR1-NB",
+      "size": [
+        250,
+        50,
+        0.1
+      ],
+      "placement": {
+        "origin": [
+          750,
+          55,
+          0
+        ]
+      }
+    }
+  ],
   "sensors": [
     {
+      "type": "Tunnel Air Sensor",
       "name": "T1-SB-INT-AIR-1",
-      "type": "Tunnel Air Sensor",
       "observes": "T1-SB",
       "origin": [
         83.33333333333333,
@@ -89,8 +181,8 @@
       ]
     },
     {
+      "type": "Tunnel Air Sensor",
       "name": "T1-SB-INT-AIR-2",
-      "type": "Tunnel Air Sensor",
       "observes": "T1-SB",
       "origin": [
         166.66666666666666,
@@ -99,8 +191,8 @@
       ]
     },
     {
-      "name": "T1-SB-INT-TEMP-1",
       "type": "Interior Thermometer",
+      "name": "T1-SB-INT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
         83.33333333333333,
@@ -109,8 +201,8 @@
       ]
     },
     {
-      "name": "T1-SB-INT-TEMP-2",
       "type": "Interior Thermometer",
+      "name": "T1-SB-INT-TEMP-2",
       "observes": "T1-SB",
       "origin": [
         166.66666666666666,
@@ -119,8 +211,8 @@
       ]
     },
     {
-      "name": "T1-SB-EXT-AIR-1",
       "type": "Baseline Air Sensor",
+      "name": "T1-SB-EXT-AIR-1",
       "observes": "T1-SB",
       "origin": [
         0,
@@ -129,8 +221,8 @@
       ]
     },
     {
-      "name": "T1-SB-EXT-TEMP-1",
       "type": "Exterior Thermometer",
+      "name": "T1-SB-EXT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
         0,
@@ -139,8 +231,8 @@
       ]
     },
     {
+      "type": "Tunnel Air Sensor",
       "name": "T1-NB-INT-AIR-1",
-      "type": "Tunnel Air Sensor",
       "observes": "T1-NB",
       "origin": [
         83.33333333333333,
@@ -149,8 +241,8 @@
       ]
     },
     {
+      "type": "Tunnel Air Sensor",
       "name": "T1-NB-INT-AIR-2",
-      "type": "Tunnel Air Sensor",
       "observes": "T1-NB",
       "origin": [
         166.66666666666666,
@@ -159,8 +251,8 @@
       ]
     },
     {
-      "name": "T1-NB-INT-TEMP-1",
       "type": "Interior Thermometer",
+      "name": "T1-NB-INT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
         83.33333333333333,
@@ -169,8 +261,8 @@
       ]
     },
     {
-      "name": "T1-NB-INT-TEMP-2",
       "type": "Interior Thermometer",
+      "name": "T1-NB-INT-TEMP-2",
       "observes": "T1-NB",
       "origin": [
         166.66666666666666,
@@ -179,8 +271,8 @@
       ]
     },
     {
-      "name": "T1-NB-EXT-AIR-1",
       "type": "Baseline Air Sensor",
+      "name": "T1-NB-EXT-AIR-1",
       "observes": "T1-NB",
       "origin": [
         250,
@@ -189,8 +281,8 @@
       ]
     },
     {
-      "name": "T1-NB-EXT-TEMP-1",
       "type": "Exterior Thermometer",
+      "name": "T1-NB-EXT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
         250,
@@ -199,8 +291,8 @@
       ]
     },
     {
-      "name": "R1-SB-VC1",
       "type": "Vehicle Counter",
+      "name": "R1-SB-VC1",
       "observes": "R1-SB",
       "origin": [
         500,
@@ -209,8 +301,8 @@
       ]
     },
     {
-      "name": "R1-NB-VC1",
       "type": "Vehicle Counter",
+      "name": "R1-NB-VC1",
       "observes": "R1-NB",
       "origin": [
         500,
@@ -219,8 +311,8 @@
       ]
     },
     {
-      "name": "BR1-SB-BS-1",
       "type": "Bridge Sensor",
+      "name": "BR1-SB-BS-1",
       "observes": "BR1-SB",
       "origin": [
         875,
@@ -229,8 +321,8 @@
       ]
     },
     {
-      "name": "BR1-NB-BS-1",
       "type": "Bridge Sensor",
+      "name": "BR1-NB-BS-1",
       "observes": "BR1-NB",
       "origin": [
         875,
@@ -238,6 +330,5 @@
         0.1
       ]
     }
-  ],
-  "simulationId": "28f13042-3e04-4025-8e6b-8c1ff0f16def"
+  ]
 }

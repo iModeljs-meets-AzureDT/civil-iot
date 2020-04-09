@@ -18,7 +18,10 @@ async function main(process: NodeJS.Process): Promise<void> {
       createClassViews: true,
     });
     const importer = new SensorImporter(iModelDb);
-    await importer.import();
+    const iotSchemaFile = path.join(__dirname, "assets", "IoTDevices.ecschema.xml");
+    const roadNetworkSchemaFile = path.join(__dirname, "assets", "RoadNetworkComposition.ecschema.xml");
+    const inputDataFile = path.join(__dirname, "assets", "sample-input.json");
+    await importer.import([iotSchemaFile, roadNetworkSchemaFile], inputDataFile);
     iModelDb.close();
 
     IModelHost.shutdown();
