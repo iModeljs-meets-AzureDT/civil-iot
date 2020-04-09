@@ -18,13 +18,17 @@
 
 .civil-browser-title {
   font-family:"Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size:18px;
+  font-size:24px;
   font-weight:400;
   padding:8px;
 }
 
-.civil-browser-tree {
+.main-menu-tree {
   height: 100%;
   width: 100%;
-}
 
+  .core-tree-node {
+    font-size: 20px;
+    margin-top: 10px;
+  }
+}
