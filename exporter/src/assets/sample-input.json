@@ -40,7 +40,7 @@
     },
     {
       "name": "Tunnel Air Sensor",
-      "federationGuid": "b92a49e4-f653-4e35-9c81-280d8efea5e9",
+      "federationGuid": "2f918d86-9c35-41b9-bc57-8e53ec0683f9",
       "observationTypes": [
         "CO",
         "NO2"
@@ -167,6 +167,120 @@
           0
         ]
       }
+    }
+  ],
+  "compositions": [
+    {
+      "name": "Pacific Highway",
+      "type": "RoadNetwork",
+      "classification": "National"
+    },
+    {
+      "name": "Mainline Roadway",
+      "type": "Roadway",
+      "classification": "National",
+      "parent": "Pacific Highway"
+    },
+    {
+      "name": "T1-SB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T1-NB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T2-SB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T2-NB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T3-SB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T3-NB",
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR1-SB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR1-NB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR2-SB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR2-NB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR3-SB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR3-NB",
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "R1-SB",
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "R1-NB",
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "Harrison Street",
+      "type": "Roadway",
+      "classification": "Local"
+    },
+    {
+      "name": "Harrison Street - 1",
+      "type": "RoadSegment",
+      "classification": "Local",
+      "parent": "Harrison Street"
+    },
+    {
+      "name": "Harrison Street - 2",
+      "type": "RoadSegment",
+      "classification": "Local",
+      "parent": "Harrison Street"
     }
   ],
   "sensors": [

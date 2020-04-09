@@ -21,13 +21,13 @@
     </Target>
   </ECRelationshipClass>
 
-  <ECRelationshipClass typeName="SensorObservesSpatialElement" strength="referencing" modifier="None" description="Relates a iot:Sensor to the bis:SpatialElement that it observes.">
+  <ECRelationshipClass typeName="SensorObservesElement" strength="referencing" modifier="None" description="Relates a iot:Sensor to the bis:Element that it observes.">
     <BaseClass>bis:ElementRefersToElements</BaseClass>
     <Source multiplicity="(0..*)" roleLabel="covers" polymorphic="true">
       <Class class="Sensor"/>
     </Source>
     <Target multiplicity="(0..*)" roleLabel="is covered by" polymorphic="true">
-      <Class class="bis:SpatialElement"/>
+      <Class class="bis:Element"/>
     </Target>
   </ECRelationshipClass>
 

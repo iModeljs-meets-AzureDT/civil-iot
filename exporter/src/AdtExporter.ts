@@ -50,15 +50,12 @@ export class AdtExporter {
   }
 
   public exportAdtTypes(): void {
-    const physicalObjectClass = this.createAdtTypeObject(PhysicalObject.className, [
-      { "@type": "Property", "schema": "string", "name": "name" }, // SpatialElement.CodeValue
-      { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
-    ]);
+    const compositionClasses: any[] = this.createCompositionTypes();
     const sensorClass = this.createAdtTypeObject("Sensor", [
       { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
       { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
       { "@type": "Property", "schema": "string", "name": "deviceId" }, // deviceId in IoT Hub
-      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesSpatialElement
+      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesElement
       // WIP: should be an array of ObservationTypes!
       { "@type": "Property", "schema": "string", "name": "observationLabel1" },
       { "@type": "Property", "schema": "string", "name": "observationUnit1" },
@@ -67,13 +64,31 @@ export class AdtExporter {
       { "@type": "Property", "schema": "string", "name": "observationUnit2" },
       { "@type": "Telemetry", "schema": "double", "name": "observationValue2" },
     ]);
-    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", [physicalObjectClass, sensorClass]);
+    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", compositionClasses.concat(sensorClass));
+  }
+
+  private createCompositionTypes(): any[] {
+    const sql = "SELECT DISTINCT ECClassId FROM RoadNetworkComposition:CompositionItem";
+    const compositionTypeNames: string[] = this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): string[] => {
+      const classNames: string[] = [];
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        classNames.push(statement.getValue(0).getClassNameForClassId().split(".")[1]);
+      }
+      return classNames;
+    });
+    return compositionTypeNames.map((compositionTypeName: string) => {
+      return this.createAdtTypeObject(compositionTypeName, [
+        { "@type": "Property", "schema": "string", "name": "name" }, // Element.CodeValue
+        { "@type": "Property", "schema": "string", "name": "classification" }, // CompositionItem.Classification
+        { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
+      ]);
+    });
   }
 
   public exportAdtInstances(): void {
     // PhysicalObject instances
     const observedObjects: any[] = [];
-    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement";
+    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesElement";
     this.iModelDb.withPreparedStatement(observedSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const observedElementId: Id64String = statement.getValue(0).getId();
@@ -85,7 +100,7 @@ export class AdtExporter {
     });
 
     // Sensor instances
-    const iotSimulationId: GuidString = "28f13042-3e04-4025-8e6b-8c1ff0f16def";
+    const iotSimulationId: GuidString = "c210810c-f052-4045-a7ca-aedc8ed699ea";
     const sensorInstances: any[] = [];
     const sensorSql = "SELECT ECInstanceId,TypeDefinition.Id FROM IoTDevices:Sensor ORDER BY ECInstanceId";
     this.iModelDb.withPreparedStatement(sensorSql, (statement: ECSqlStatement): void => {
@@ -149,7 +164,7 @@ export class AdtExporter {
   }
 
   private queryObservedElement(sensorId: Id64String): Id64String | undefined {
-    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
+    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
     return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
       statement.bindId("sensorId", sensorId);
       return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
