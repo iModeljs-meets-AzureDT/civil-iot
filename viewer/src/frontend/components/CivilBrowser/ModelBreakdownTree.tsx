@@ -4,65 +4,75 @@
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
 import "./CivilBrowser.scss";
-import { CivilBrowserMode } from "./CivilBrowser";
 import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider,
   useModelSource, useNodeLoader, TreeNodeItem,
   TreeEventHandler, TreeDataChangesListener,
   DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent, TreeModelSource,
 } from "@bentley/ui-components";
-import { useDisposable } from "@bentley/ui-core";
 import { BeEvent } from "@bentley/bentleyjs-core";
+import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
+import { useDisposable } from "@bentley/ui-core";
 
-export interface CivilMainMenuProps {
-  onNodeSelected(selected: CivilBrowserMode): void;
+const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem => {
+  return ({ ...component, hasChildren });
+};
+
+interface ModelBreakdownTreeProps {
+  onNodeSelected(component: CivilComponentProps): void;
 }
 
-export function CivilMainMenu(props: CivilMainMenuProps) {
-  const dataProvider = React.useMemo(() => new MenuDataProvider(), []);
+export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {
+  const dataProvider = React.useMemo(() => new ModelBreakdownDataProvider(), []);
   const modelSource = useModelSource(dataProvider);
   const nodeLoader = useNodeLoader(dataProvider, modelSource);
 
-  const eventHandler = useDisposable(React.useCallback(() => new MainMenuSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
+  const eventHandler = useDisposable(React.useCallback(() => new ModelBreakdownSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
   const visibleNodes = useVisibleTreeNodes(nodeLoader.modelSource);
 
   return <>
-    <div className="main-menu-tree">
-      <ControlledTree
-        nodeLoader={nodeLoader}
-        selectionMode={SelectionMode.SingleAllowDeselect}
-        treeEvents={eventHandler}
-        visibleNodes={visibleNodes}
-      />
-    </div>
+    <ControlledTree
+      nodeLoader={nodeLoader}
+      selectionMode={SelectionMode.SingleAllowDeselect}
+      treeEvents={eventHandler}
+      visibleNodes={visibleNodes}
+    />
   </>;
 }
 
-export class MenuDataProvider implements ITreeDataProvider {
+class ModelBreakdownDataProvider implements ITreeDataProvider {
   public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
 
-  public async getNodesCount(_parent?: TreeNodeItem) {
-    return 0;
+  public async getNodesCount(parent?: TreeNodeItem) {
+    const data = CivilDataModel.get();
+    if (parent === undefined)
+      return data.getAllTopNodes().length;
+
+    return data.getChildCount(parent as CivilComponentProps);
   }
 
   public async getNodes(parent?: TreeNodeItem) {
-    if (parent === undefined) {
-      return [
-        this.createNode(CivilBrowserMode.ModelBreakdown, "Model Breakdown"),
-        this.createNode(CivilBrowserMode.Assets, "Assets"),
-        this.createNode(CivilBrowserMode.Sensors, "Sensors"),
-      ];
-    }
-    return [];
-  }
+    const data = CivilDataModel.get();
+    let components: CivilComponentProps[];
 
-  private createNode = (id: string, label: string): DelayLoadedTreeNodeItem => {
-    return { id, label, hasChildren: false };
+    if (parent === undefined) {
+      components = data.getAllTopNodes();
+    } else {
+      components = data.getChildren(parent as CivilComponentProps);
+    }
+
+    const nodes = [];
+    for (const component of components) {
+      const hasChildren = 0 < data.getChildCount(component);
+      nodes.push(createTreeNode(component, hasChildren));
+    }
+
+    return nodes;
   }
 }
 
-class MainMenuSelectionHandler extends TreeEventHandler {
-  private _onNodeSelected: (mode: CivilBrowserMode) => void;
+class ModelBreakdownSelectionHandler extends TreeEventHandler {
+  private _onNodeSelected: (component: CivilComponentProps) => void;
 
   constructor(nodeLoader: AbstractTreeNodeLoaderWithProvider<TreeDataProvider>, onNodeSelected: any) {
     super({ modelSource: nodeLoader.modelSource, nodeLoader, collapsedChildrenDisposalEnabled: true });
@@ -75,7 +85,7 @@ class MainMenuSelectionHandler extends TreeEventHandler {
     const baseSubscription = super.onSelectionModified(event);
     // subscribe to selection modifications and additionally change checkboxes
     const subscription = event.modifications.subscribe(({ selectedNodeItems /*, deselectedNodeItems*/ }) => {
-      this._onNodeSelected(selectedNodeItems[0].id as CivilBrowserMode);
+      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
     });
     // stop checkboxes handling when base selection handling is stopped
     baseSubscription?.add(subscription);
@@ -88,7 +98,7 @@ class MainMenuSelectionHandler extends TreeEventHandler {
     const baseSubscription = super.onSelectionReplaced(event);
     // subscribe to selection replacements and additionally handle checkboxes
     const subscription = event.replacements.subscribe(({ selectedNodeItems }) => {
-      this._onNodeSelected(selectedNodeItems[0].id as CivilBrowserMode);
+      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
     });
     // stop handling when base selection handling is stopped
     baseSubscription?.add(subscription);
