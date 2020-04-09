@@ -71,4 +71,12 @@ export class DataLink {
     return rows;
   }
 
+  public async queryAllTunnels() {
+    const query = `SELECT e.ecinstanceid, e.userlabel
+    FROM BisCore.GeometricElement3d e, DgnV8OpenRoadsDesigner.FeatureAspect f
+    WHERE e.ECInstanceId = f.Element.Id AND (Name = 'TC_Ret Wall-Cut_L' OR Name = 'TC_Ret Wall-Cut_R')`;
+    const rows = await this.executeQuery(query);
+
+    return rows;
+  }
 }
