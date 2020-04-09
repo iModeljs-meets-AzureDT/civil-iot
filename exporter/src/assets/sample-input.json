@@ -77,7 +77,7 @@
       ]
     }
   ],
-  "spatialLocations": [
+  "physicalObjects": [
     {
       "name": "T1-SB",
       "size": [
