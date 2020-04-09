@@ -50,10 +50,7 @@ export class AdtExporter {
   }
 
   public exportAdtTypes(): void {
-    const physicalObjectClass = this.createAdtTypeObject(PhysicalObject.className, [
-      { "@type": "Property", "schema": "string", "name": "name" }, // SpatialElement.CodeValue
-      { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
-    ]);
+    const compositionClasses: any[] = this.createCompositionTypes();
     const sensorClass = this.createAdtTypeObject("Sensor", [
       { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
       { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
@@ -67,7 +64,25 @@ export class AdtExporter {
       { "@type": "Property", "schema": "string", "name": "observationUnit2" },
       { "@type": "Telemetry", "schema": "double", "name": "observationValue2" },
     ]);
-    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", [physicalObjectClass, sensorClass]);
+    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", compositionClasses.concat(sensorClass));
+  }
+
+  private createCompositionTypes(): any[] {
+    const sql = "SELECT DISTINCT ECClassId FROM RoadNetworkComposition:CompositionItem";
+    const compositionTypeNames: string[] = this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): string[] => {
+      const classNames: string[] = [];
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        classNames.push(statement.getValue(0).getClassNameForClassId().split(".")[1]);
+      }
+      return classNames;
+    });
+    return compositionTypeNames.map((compositionTypeName: string) => {
+      return this.createAdtTypeObject(compositionTypeName, [
+        { "@type": "Property", "schema": "string", "name": "name" }, // Element.CodeValue
+        { "@type": "Property", "schema": "string", "name": "classification" }, // CompositionItem.Classification
+        { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
+      ]);
+    });
   }
 
   public exportAdtInstances(): void {

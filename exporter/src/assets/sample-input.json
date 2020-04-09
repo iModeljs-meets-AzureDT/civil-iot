@@ -40,7 +40,7 @@
     },
     {
       "name": "Tunnel Air Sensor",
-      "federationGuid": "b92a49e4-f653-4e35-9c81-280d8efea5e9",
+      "federationGuid": "2f918d86-9c35-41b9-bc57-8e53ec0683f9",
       "observationTypes": [
         "CO",
         "NO2"
