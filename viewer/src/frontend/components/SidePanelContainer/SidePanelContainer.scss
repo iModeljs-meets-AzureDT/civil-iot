@@ -1,0 +1,61 @@
+@import "@bentley/ui-core/lib/ui-core/index";
+
+div.max-height {
+  height: 400px;
+  max-height: 100%;
+}
+
+div.max-width {
+  width: 100%;
+}
+
+.side-panel-container-header {
+  height: 50px;
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: center;
+  background-color: $buic-background-3;
+  border-bottom: 1px solid #dce0e3;
+
+  .side-panel-container-title {
+    display: flex;
+    align-self: center;
+    flex: 1 1 auto;
+    max-width: calc(100% - 80px);
+    overflow: hidden;
+    color: #2a2f34;
+    font-weight: bold;
+    font-size: $uicore-font-size-leading;
+    padding-left: 16px;
+  }
+}
+
+.side-panel-container-header.simple-background {
+  background-color: $buic-background-1;
+  border: none;
+
+  .side-panel-container-title {
+    font-size:  $uicore-font-size-title;
+    font-weight: normal;
+  }
+}
+
+.side-panel-container-back {
+  display: flex;
+  padding-left: 16px;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: center;
+  color: $buic-text-color-muted;
+  cursor: pointer;
+  height: 100%;
+
+  &:hover {
+    color: $buic-text-color;
+  }
+}
+
+.side-panel-container-contents {
+  height: calc(100% - 50px);
+}

@@ -14,16 +14,33 @@ import {
 import { BeEvent } from "@bentley/bentleyjs-core";
 import { CivilDataModel, CivilComponentProps, CivilDataModelLevel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
+import { SidePanelContainer } from "../SidePanelContainer/SidePanelContainer";
+import { CivilMainMenu } from "./CivilMainMenu";
+
+export enum CivilBrowserMode {
+  MainMenu = "1",
+  ModelBreakdown = "2",
+  Assets = "3",
+  Sensors = "4",
+}
+
+interface CivilBrowserState {
+  mode: CivilBrowserMode;
+}
 
 interface CivilBrowserProps {
   imodel: IModelConnection;
 }
 
 /** A React component that renders the UI specific for this component */
-export class CivilBrowser extends React.Component<CivilBrowserProps, {}> {
+export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowserState> {
 
   constructor(props?: any, context?: any) {
     super(props, context);
+
+    this.state = {
+      mode: CivilBrowserMode.MainMenu,
+    };
   }
 
   private _treeNodeSelected = async (component: CivilComponentProps): Promise<void> => {
@@ -35,16 +52,18 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, {}> {
 
   /** The sample's render method */
   public render() {
+    let content;
+
+    switch (this.state.mode) {
+      case CivilBrowserMode.MainMenu: content = <CivilMainMenu onNodeSelected={(mode: CivilBrowserMode) => this.setState({ mode })} />; break;
+      case CivilBrowserMode.ModelBreakdown: content = <CivilBrowserTree onNodeSelected={this._treeNodeSelected} />; break;
+    }
+
     return (
       <>
-        <div className="civil-browser">
-          <div className="civil-browser-title">
-            <span>Digital Twin</span>
-          </div>
-          <div className="civil-browser-tree">
-            <CivilBrowserTree onNodeSelected={this._treeNodeSelected} />
-          </div>
-        </div>
+        <SidePanelContainer title="Civil Model Browser" onBackButton={() => { this.setState({ mode: CivilBrowserMode.MainMenu }); }}>
+          {content}
+        </SidePanelContainer>
       </>
     );
   }
