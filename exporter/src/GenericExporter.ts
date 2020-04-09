@@ -1,29 +1,21 @@
-import { DbResult, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model } from "@bentley/imodeljs-backend";
+import { DbResult, GuidString, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject } from "@bentley/imodeljs-backend";
 import { ElementProps, IModel } from "@bentley/imodeljs-common";
 import * as path from "path";
+import { FileSystemUtils } from "./FileSystemUtils";
 
-const loggerCategory = "civil-iot-exporter";
+const loggerCategory = "GenericExporter";
 
-function writeLine(outputFileName: string, line: string, indentLevel: number = 0): void {
-  if (indentLevel > 0) {
-    for (let i = 0; i < indentLevel; i++) { IModelJsFs.appendFileSync(outputFileName, "  "); }
-  }
-  IModelJsFs.appendFileSync(outputFileName, line);
-  IModelJsFs.appendFileSync(outputFileName, "\n");
-}
-
-export class Exporter {
+export class GenericExporter {
   public iModelDb: IModelDb;
   public outputDir: string;
 
-  public constructor(iModelDb: IModelDb) {
+  public constructor(iModelDb: IModelDb, outputDir: string) {
     this.iModelDb = iModelDb;
-    this.outputDir = path.join(__dirname, "out");
-    if (IModelJsFs.existsSync(this.outputDir)) {
-      IModelJsFs.removeSync(this.outputDir);
+    this.outputDir = outputDir;
+    if (!IModelJsFs.existsSync(this.outputDir)) {
+      IModelJsFs.mkdirSync(this.outputDir);
     }
-    IModelJsFs.mkdirSync(this.outputDir);
     // initialize logging
     if (true) {
       Logger.initializeToConsole();
@@ -33,16 +25,22 @@ export class Exporter {
   }
 
   public exportAll(): void {
-    this.exportSchemas();
-    this.exportClassCount();
-    this.exportInstancesOf("RoadPhysical:RoadNetwork");
-    this.exportInstancesOf("RailPhysical:RailNetwork");
-    this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
-    this.exportModels();
-    this.exportInstancesWithProperty("Description");
-    this.exportHierarchy();
-    this.exportInstancesOf("BisCore:SpatialElement");
-    this.exportInstancesOf("BisCore:GraphicalElement3d");
+    if (false) {
+      this.exportSchemas();
+      this.exportClassCount();
+      this.exportInstancesOf("RoadPhysical:RoadNetwork");
+      this.exportInstancesOf("RailPhysical:RailNetwork");
+      this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
+      this.exportModels();
+      this.exportInstancesWithProperty("Description");
+      this.exportHierarchy();
+      this.exportInstancesOf("BisCore:SpatialElement");
+      this.exportInstancesOf("BisCore:GraphicalElement3d");
+    }
+    this.exportInstancesOf("IoTDevices:ObservationType");
+    this.exportInstancesOf("IoTDevices:SensorType");
+    this.exportInstancesOf("IoTDevices:Sensor");
+    this.exportInstancesOf(PhysicalObject.classFullName);
   }
 
   public exportSchemas(): void {
@@ -54,14 +52,14 @@ export class Exporter {
   }
 
   public exportClassCount(): void {
-    const outputFileName: string = path.join(this.outputDir, "class-count.csv");
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "class-count.csv");
     this.iModelDb.withPreparedStatement(`SELECT DISTINCT ECClassId FROM ${Element.classFullName}`, (classStatement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === classStatement.step()) {
         const classFullName: string = classStatement.getValue(0).getClassNameForClassId();
         this.iModelDb.withPreparedStatement(`SELECT COUNT(*) FROM ${classFullName}`, (countStatement: ECSqlStatement): void => {
           while (DbResult.BE_SQLITE_ROW === countStatement.step()) {
             const count: number = countStatement.getValue(0).getInteger();
-            writeLine(outputFileName, `${count}, ${classFullName}`);
+            FileSystemUtils.writeLine(outputFileName, `${count}, ${classFullName}`);
           }
         });
       }
@@ -69,13 +67,13 @@ export class Exporter {
   }
 
   public exportInstancesOf(classFullName: string): void {
-    const outputFileName: string = path.join(this.outputDir, classFullName.replace(":", "-") + "-Instances.csv");
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, classFullName.replace(":", "-") + "-Instances.csv");
     const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
     this.iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM ${classFullName}`, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
         const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
-        writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
+        FileSystemUtils.writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
         // elementExporter.exportElement(elementId);
         // writeLine(outputFileName, "");
       }
@@ -83,18 +81,18 @@ export class Exporter {
   }
 
   public exportModels(): void {
-    const outputFileName: string = path.join(this.outputDir, "models.csv");
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "models.csv");
     this.iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM ${Model.classFullName}`, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const modelId: Id64String = statement.getValue(0).getId();
         const model: Model = this.iModelDb.models.getModel(modelId);
-        writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${model.name}`);
+        FileSystemUtils.writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${model.name}`);
       }
     });
   }
 
   public exportHierarchy(): void {
-    const outputFileName: string = path.join(this.outputDir, "complete-hierarchy.csv");
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "complete-hierarchy.csv");
     // const elementExporter = new IModelToTextFileExporter(this.iModelDb, outputFileName);
     const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
     elementExporter.exportElement(IModel.rootSubjectId);
@@ -133,12 +131,8 @@ export class Exporter {
     return classFullNames;
   }
 
-  private buildElementUrn(elementId: Id64String): string {
-    return `urn:iModel-element:${this.iModelDb.getGuid()}#${elementId}`;
-  }
-
   public exportInstancesWithProperty(propertyName: string): void {
-    const outputFileName: string = path.join(this.outputDir, `instances-with-${propertyName}.csv`);
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `instances-with-${propertyName}.csv`);
     const classFullNames: string[] = this.resolveClassFullNames(this.findClassIdsWithProperty(propertyName));
     for (const classFullName of classFullNames) {
       const sql = `SELECT ECInstanceId FROM ${classFullName} WHERE ${propertyName} IS NOT NULL`;
@@ -147,11 +141,19 @@ export class Exporter {
           const elementId: Id64String = statement.getValue(0).getId();
           const elementProps: ElementProps | undefined = this.iModelDb.elements.tryGetElementProps(elementId);
           if (undefined !== elementProps) {
-            writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
+            FileSystemUtils.writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
           }
         }
       });
     }
+  }
+
+  private queryFederationGuid(elementId: Id64String): GuidString | undefined {
+    const sql = `SELECT FederationGuid FROM ${Element.classFullName} WHERE ECInstanceId=:elementId`;
+    return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
+      statement.bindId("elementId", elementId);
+      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getGuid() : undefined;
+    });
   }
 }
 
@@ -192,7 +194,7 @@ class ElementExporter extends IModelExportHandler {
   protected onExportElement(element: Element, isUpdate: boolean | undefined): void {
     const indentLevel: number = this.getIndentLevelForElement(element) + this._modelIndentLevel;
     // writeLine(this.outputFileName, `${element.classFullName}, ${element.id}, ${element.getDisplayLabel()}`, indentLevel);
-    writeLine(this.outputFileName, JSON.stringify(element));
+    FileSystemUtils.writeLine(this.outputFileName, JSON.stringify(element));
     this.exportSubModel(element.id);
     super.onExportElement(element, isUpdate);
   }
