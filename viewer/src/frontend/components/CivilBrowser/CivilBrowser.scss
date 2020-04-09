@@ -2,6 +2,20 @@
 * Copyright (c) Bentley Systems, Incorporated. All rights reserved.
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
+.civil-browser {
+  display: block;
+  float: left;
+  background-origin: border-box;
+  position: absolute;
+  -webkit-transition: all 500ms ease;
+  -o-transition: all 500ms ease;
+  transition: all 500ms ease;
+  cursor: pointer;
+  padding: 10px;
+  height: 100%;
+  width: 100%;
+}
+
 .civil-browser-title {
   font-family:"Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size:18px;
@@ -10,21 +24,7 @@
 }
 
 .civil-browser-tree {
-  position: absolute;
-  background-color: white;
-  right: 1%;
-  top: 30%;
-  bottom: 3%;
-  left: 60%;
-  border-color: grey;
-  border-style: solid;
-  border-width: 2px;
-  display: flex;
-  flex-direction: column;
-  
-  .tree {
-    height: 100%;
-    width: 100%;
-  }
+  height: 100%;
+  width: 100%;
 }
 

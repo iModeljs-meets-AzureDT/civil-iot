@@ -37,6 +37,7 @@ import { DataLink } from "../../api/DataLink";
 import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
+import { CivilDataModel } from "../../api/CivilDataModel";
 
 /**
  * Sample Frontstage for Civil IoT Viewer application
@@ -60,6 +61,9 @@ export class SampleFrontstage extends FrontstageProvider {
     // TEMPORARY: just dump some stuff to the console on startup
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
       this.consoleLogSubModelBreakdown(vp.iModel);
+
+      // NEEDSWORK: find a better place to do this
+      CivilDataModel.initialize(vp.iModel);
     });
 
     // Create the content layouts.
@@ -237,7 +241,7 @@ export class SampleFrontstage extends FrontstageProvider {
             size={340} minSize={340}
             allowedZones={[6, 9]}
             widgets={[
-              <Widget element={<CivilBrowser imodel={UiFramework.getIModelConnection()} />} fillZone={true}
+              <Widget element={<CivilBrowser imodel={UiFramework.getIModelConnection()!} />} fillZone={true}
                 iconSpec={<SvgSprite src={civilIcon} />} label="Model Breakdown"
                 applicationData={{
                   iModelConnection: UiFramework.getIModelConnection(),

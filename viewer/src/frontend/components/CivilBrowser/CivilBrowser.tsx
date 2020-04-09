@@ -4,15 +4,19 @@
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
 import "./CivilBrowser.scss";
-import { IModelConnection, PropertyRecord } from "@bentley/imodeljs-frontend";
+import { IModelConnection, PropertyRecord, IModelApp } from "@bentley/imodeljs-frontend";
 import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider,
-  useModelSource, useNodeLoader, TreeNodeItem, TreeEventHandler, TreeDataChangesListener, DelayLoadedTreeNodeItem,
+  useModelSource, useNodeLoader, TreeNodeItem,
+  TreeEventHandler, TreeDataChangesListener,
+  DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent, TreeModelSource,
 } from "@bentley/ui-components";
 import { BeEvent } from "@bentley/bentleyjs-core";
+import { CivilDataModel, CivilComponentProps, CivilDataModelLevel } from "../../api/CivilDataModel";
+import { useDisposable } from "@bentley/ui-core";
 
 interface CivilBrowserProps {
-  imodel?: IModelConnection;
+  imodel: IModelConnection;
 }
 
 /** A React component that renders the UI specific for this component */
@@ -22,83 +26,118 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, {}> {
     super(props, context);
   }
 
+  private _treeNodeSelected = async (component: CivilComponentProps): Promise<void> => {
+    // console.log("zoom to component with id " + component.id);
+
+    await IModelApp.viewManager.selectedView!.zoomToElements([component.id], { animateFrustumChange: true });
+    this.props.imodel.selectionSet.replace(component.id);
+  }
+
   /** The sample's render method */
   public render() {
     return (
       <>
-        <div className="civil-browser-title">
-          <span>Digital Twin</span>
-        </div>
-        <div className="civil-browser-tree">
-          <CivilBrowserTree />
+        <div className="civil-browser">
+          <div className="civil-browser-title">
+            <span>Digital Twin</span>
+          </div>
+          <div className="civil-browser-tree">
+            <CivilBrowserTree onNodeSelected={this._treeNodeSelected} />
+          </div>
         </div>
       </>
     );
   }
 }
 
-class CivilBrowserDataProvider implements ITreeDataProvider {
-  public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
-
-  public async getNodesCount(parent?: TreeNodeItem) {
-    if (parent === undefined)
-      return 5;
-
-    switch (parent.id) {
-      case "TestNode-1": return 3;
-      case "TestNode-2": return 3;
-      case "TestNode-2-2": return 2;
-      case "TestNode-2-3": return 2;
-      case "TestNode-3": return 3;
-      case "TestNode-5": return 1;
-      default: return 0;
-    }
-  }
-
-  public async getNodes(parent?: TreeNodeItem) {
-    if (parent === undefined) {
-      return [
-        createNode("TestNode-1", "TestNode 1", true), createNode("TestNode-2", "TestNode 2", true), createNode("TestNode-3", "TestNode 3", true),
-        createNode("TestNode-4", "TestNode 4"), createNode("TestNode-5", "TestNode 5", true),
-      ];
-    }
-
-    switch (parent.id) {
-      case "TestNode-1": return [createNode("TestNode-1-1", "TestNode 1-1"), createNode("TestNode-1-2", "TestNode 1-2"), createNode("TestNode-1-3", "TestNode 1-3")];
-      case "TestNode-2": return [createNode("TestNode-2-1", "TestNode 2-1"), createNode("TestNode-2-2", "TestNode 2-2", true), createNode("TestNode-2-3", "TestNode 2-3", true)];
-      case "TestNode-2-2": return [createNode("TestNode-2-2-1", "TestNode 2-2-1"), createNode("TestNode-2-2-2", "TestNode 2-2-2")];
-      case "TestNode-2-3": return [createNode("TestNode-2-3-1", "TestNode 2-3-1"), createNode("TestNode-2-3-2", "TestNode 2-3-2")];
-      case "TestNode-3": return [createNode("TestNode-3-1", "TestNode 3-1"), createNode("TestNode-3-2", "TestNode 3-2"), createNode("TestNode-3-3", "TestNode 3-3")];
-      case "TestNode-5": return [createNode("TestNode-5-1", "TestNode 5-1")];
-      default: return [];
-    }
-  }
-}
-
-const createNode = (id: string, label: string, hasChildren?: boolean): DelayLoadedTreeNodeItem => {
-  return {
-    id,
-    label,
-    isCheckboxVisible: true,
-    hasChildren,
-  };
+const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem => {
+  return ({ ...component, hasChildren });
 };
 
-function CivilBrowserTree() {
+interface CivilBrowserTreeProps {
+  onNodeSelected(component: CivilComponentProps): void;
+}
+
+function CivilBrowserTree(props: CivilBrowserTreeProps) {
   const dataProvider = React.useMemo(() => new CivilBrowserDataProvider(), []);
   const modelSource = useModelSource(dataProvider);
   const nodeLoader = useNodeLoader(dataProvider, modelSource);
 
-  const eventHandlerParams = React.useMemo(() => ({ nodeLoader, modelSource: nodeLoader.modelSource, collapsedChildrenDisposalEnabled: true }), [nodeLoader]);
-  const eventHandler = new TreeEventHandler(eventHandlerParams);
+  const eventHandler = useDisposable(React.useCallback(() => new CivilBrowserTreeSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
   const visibleNodes = useVisibleTreeNodes(nodeLoader.modelSource);
 
   return <>
     <ControlledTree
       nodeLoader={nodeLoader}
-      selectionMode={SelectionMode.None}
+      selectionMode={SelectionMode.SingleAllowDeselect}
       treeEvents={eventHandler}
       visibleNodes={visibleNodes}
     />
   </>;
+}
+
+class CivilBrowserDataProvider implements ITreeDataProvider {
+  public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
+
+  public async getNodesCount(parent?: TreeNodeItem) {
+    const data = CivilDataModel.get();
+    if (parent === undefined)
+      return data.getAllTopNodes().length;
+
+    return data.getChildCount(parent as CivilComponentProps);
+  }
+
+  public async getNodes(parent?: TreeNodeItem) {
+    const data = CivilDataModel.get();
+    let components: CivilComponentProps[];
+
+    if (parent === undefined) {
+      components = data.getAllTopNodes();
+    } else {
+      components = data.getChildren(parent as CivilComponentProps);
+    }
+
+    const nodes = [];
+    for (const component of components) {
+      const hasChildren = 0 < data.getChildCount(component);
+      nodes.push(createTreeNode(component, hasChildren));
+    }
+
+    return nodes;
+  }
+}
+
+class CivilBrowserTreeSelectionHandler extends TreeEventHandler {
+  private _onNodeSelected: (component: CivilComponentProps) => void;
+
+  constructor(nodeLoader: AbstractTreeNodeLoaderWithProvider<TreeDataProvider>, onNodeSelected: any) {
+    super({ modelSource: nodeLoader.modelSource, nodeLoader, collapsedChildrenDisposalEnabled: true });
+
+    this._onNodeSelected = onNodeSelected;
+  }
+  /** Selects or deselects nodes until event is handled, handler is disposed selection replaced event occurs.  */
+  public onSelectionModified(event: TreeSelectionModificationEvent) {
+    // call base selection handling
+    const baseSubscription = super.onSelectionModified(event);
+    // subscribe to selection modifications and additionally change checkboxes
+    const subscription = event.modifications.subscribe(({ selectedNodeItems /*, deselectedNodeItems*/ }) => {
+      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
+    });
+    // stop checkboxes handling when base selection handling is stopped
+    baseSubscription?.add(subscription);
+    return baseSubscription;
+  }
+
+  /** Replaces currently selected nodes until event is handled, handler is disposed or another selection replaced event occurs. */
+  public onSelectionReplaced(event: TreeSelectionReplacementEvent) {
+    // call base selection handling
+    const baseSubscription = super.onSelectionReplaced(event);
+    // subscribe to selection replacements and additionally handle checkboxes
+    const subscription = event.replacements.subscribe(({ selectedNodeItems }) => {
+      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
+    });
+    // stop handling when base selection handling is stopped
+    baseSubscription?.add(subscription);
+    return baseSubscription;
+  }
 }
