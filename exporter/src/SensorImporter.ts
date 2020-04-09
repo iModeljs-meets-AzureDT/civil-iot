@@ -182,7 +182,7 @@ export class SensorImporter {
     return observationTypeId;
   }
 
-  private insertSensor(name: string, sensorTypeIdOrCode: Id64String | string, origin: XYZProps, physicalObjectIdOrCode: Id64String | string): Id64String {
+  private insertSensor(name: string, sensorTypeIdOrCode: Id64String | string, origin: XYZProps, observedIdOrCode: Id64String | string): Id64String {
     let sensorType: RelatedElement | undefined;
     if (Id64.isValidId64(sensorTypeIdOrCode)) {
       sensorType = new GeometricElement3dHasTypeDefinition(sensorTypeIdOrCode);
@@ -203,12 +203,12 @@ export class SensorImporter {
       jsonProperties: sensorType ? { iot: { sensorTypeIndex: this.getNextSensorTypeIndex(sensorType.id) } } : undefined,
     };
     const sensorId: Id64String = this._iModelDb.elements.insertElement(sensorProps);
-    const physicalObjectId = Id64.isValidId64(physicalObjectIdOrCode) ? physicalObjectIdOrCode : this.tryQueryPhysicalObjectByCode(physicalObjectIdOrCode);
-    if (undefined !== physicalObjectId) {
+    const observedId = Id64.isValidId64(observedIdOrCode) ? observedIdOrCode : this.tryQueryCompositionElementByCode(observedIdOrCode);
+    if (undefined !== observedId) {
       this._iModelDb.relationships.insertInstance({
-        classFullName: "IoTDevices:SensorObservesSpatialElement",
+        classFullName: "IoTDevices:SensorObservesElement",
         sourceId: sensorId,
-        targetId: physicalObjectId,
+        targetId: observedId,
       });
     }
     return sensorId;

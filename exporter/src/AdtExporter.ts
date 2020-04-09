@@ -58,7 +58,7 @@ export class AdtExporter {
       { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
       { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
       { "@type": "Property", "schema": "string", "name": "deviceId" }, // deviceId in IoT Hub
-      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesSpatialElement
+      { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesElement
       // WIP: should be an array of ObservationTypes!
       { "@type": "Property", "schema": "string", "name": "observationLabel1" },
       { "@type": "Property", "schema": "string", "name": "observationUnit1" },
@@ -73,7 +73,7 @@ export class AdtExporter {
   public exportAdtInstances(): void {
     // PhysicalObject instances
     const observedObjects: any[] = [];
-    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement";
+    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesElement";
     this.iModelDb.withPreparedStatement(observedSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const observedElementId: Id64String = statement.getValue(0).getId();
@@ -149,7 +149,7 @@ export class AdtExporter {
   }
 
   private queryObservedElement(sensorId: Id64String): Id64String | undefined {
-    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesSpatialElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
+    const sql = "SELECT TargetECInstanceId FROM IoTDevices:SensorObservesElement WHERE SourceECInstanceId=:sensorId LIMIT 1";
     return this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
       statement.bindId("sensorId", sensorId);
       return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
