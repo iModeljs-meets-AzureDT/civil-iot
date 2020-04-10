@@ -10,7 +10,11 @@ export enum CivilDataModelLevel {
 }
 
 export enum CivilDataModelAssetType {
-  Bridge, Tunnel, Road,
+  Bridge, Tunnel, Roadway,
+}
+
+export enum CivilDataComponentType {
+  Interstate, Highway, LocalRoad, Bridge, Tunnel, Roadway, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor,
 }
 
 export interface CivilComponentProps {
@@ -18,7 +22,7 @@ export interface CivilComponentProps {
   label: string;                        // UI label for this component
   composingId: string;                  // Id of the 'parent' component for the UI tree
   level: CivilDataModelLevel;           // tree level
-  assetType?: CivilDataModelAssetType;  // only for assets
+  type: CivilDataComponentType;         // for icons, etc.
 }
 
 export class CivilDataModel {
@@ -48,31 +52,31 @@ export class CivilDataModel {
 
   private async populateTopNodes(_dataLink: DataLink) {
     const level = CivilDataModelLevel.TopNode;
-    this._topNodes.push({ id: "0x0001", label: "Interstates", composingId: "", level });
-    this._topNodes.push({ id: "0x0002", label: "State Highways", composingId: "", level });
-    this._topNodes.push({ id: "0x0003", label: "Local Roadways", composingId: "", level });
+    this._topNodes.push({ id: "0x0001", label: "Interstates", composingId: "", level, type: CivilDataComponentType.Interstate });
+    this._topNodes.push({ id: "0x0002", label: "State Highways", composingId: "", level, type: CivilDataComponentType.Highway });
+    this._topNodes.push({ id: "0x0003", label: "Local Roadways", composingId: "", level, type: CivilDataComponentType.LocalRoad });
   }
 
   private async populateCorridors(_dataLink: DataLink) {
     const level = CivilDataModelLevel.Corridor;
 
     // Interstates
-    this._corridors.push({ id: "0x0011", label: "Pacific Highway 100", composingId: "0x0001", level });
+    this._corridors.push({ id: "0x0011", label: "Pacific Highway 100", composingId: "0x0001", level, type: CivilDataComponentType.Interstate });
 
     // State Highways
-    this._corridors.push({ id: "0x0021", label: "SR 202", composingId: "0x0002", level });
-    this._corridors.push({ id: "0x0022", label: "SR 73", composingId: "0x0002", level });
+    this._corridors.push({ id: "0x0021", label: "SR 202", composingId: "0x0002", level, type: CivilDataComponentType.Highway });
+    this._corridors.push({ id: "0x0022", label: "SR 73", composingId: "0x0002", level, type: CivilDataComponentType.Highway });
 
     // Local Roadways
-    this._corridors.push({ id: "0x0031", label: "Harrison Street", composingId: "0x0003", level });
+    this._corridors.push({ id: "0x0031", label: "Harrison Street", composingId: "0x0003", level, type: CivilDataComponentType.LocalRoad });
   }
 
   private async populateSubcorridors(_dataLink: DataLink) {
     const level = CivilDataModelLevel.Subcorridor;
 
     // Pacific Highway
-    this._subCorridors.push({ id: "0x0101", label: "Mainline", composingId: "0x0011", level });
-    this._subCorridors.push({ id: "0x0102", label: "Ramps", composingId: "0x0011", level });
+    this._subCorridors.push({ id: "0x0101", label: "Mainline", composingId: "0x0011", level, type: CivilDataComponentType.Roadway });
+    this._subCorridors.push({ id: "0x0102", label: "Ramps", composingId: "0x0011", level, type: CivilDataComponentType.Ramp });
   }
 
   private async populateAssets(dataLink: DataLink) {
@@ -81,7 +85,7 @@ export class CivilDataModel {
     // Pacific Highway Mainline
     const rows = await dataLink.queryAllTunnels();
     for (const row of rows) {
-      this._assets.push({ id: row.id, label: row.userLabel, composingId: "0x0101", level });
+      this._assets.push({ id: row.id, label: row.userLabel, composingId: "0x0101", level, type: CivilDataComponentType.Tunnel });
     }
   }
 
@@ -118,6 +122,25 @@ export class CivilDataModel {
       case CivilDataModelLevel.Subcorridor: return CivilDataModelLevel.Asset;
       case CivilDataModelLevel.Asset: return undefined;
     }
+  }
+
+  public static getIconForComponent(type: CivilDataComponentType) {
+    switch (type) {
+      case CivilDataComponentType.Interstate: return "Road_36.png";
+      case CivilDataComponentType.Highway: return "road-split.svg";
+      case CivilDataComponentType.LocalRoad: return "Intersection_36.png";
+      case CivilDataComponentType.Bridge: return "Bridge_2_36.png";
+      case CivilDataComponentType.Tunnel: return "Tunnel_36.png";
+      case CivilDataComponentType.Roadway: return "road-template.svg";
+      case CivilDataComponentType.Ramp: return "ramp_36.png";
+      case CivilDataComponentType.GenericSensor: return "dashboard_2.svg";
+      case CivilDataComponentType.AirQualitySensor: return "air-quality-sensor.png";
+      case CivilDataComponentType.TemperatureSensor: return "temperature-sensor.png";
+      case CivilDataComponentType.VibrationSensor: return "activity.SVG";
+      case CivilDataComponentType.TrafficSensor: return "dashboard_2.svg";
+    }
+
+    return "";
   }
 
   public getChildren(component: CivilComponentProps) {
