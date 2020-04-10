@@ -39,7 +39,12 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
   private _treeNodeSelected = async (component: CivilComponentProps): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 
-    await IModelApp.viewManager.selectedView!.zoomToElements([component.id], { animateFrustumChange: true });
+    if (undefined === component.geometricId) {
+      alert("No geometryId");
+      return;
+    }
+
+    await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
     this.props.imodel.selectionSet.replace(component.id);
   }
 

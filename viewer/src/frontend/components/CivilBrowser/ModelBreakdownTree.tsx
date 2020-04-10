@@ -49,16 +49,20 @@ export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {
 class ModelBreakdownDataProvider implements ITreeDataProvider {
   public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
 
-  public async getNodesCount(parent?: TreeNodeItem) {
+  public async getNodesCount(_parent?: TreeNodeItem) {
+    /*
     const data = CivilDataModel.get();
     if (parent === undefined)
       return data.getAllTopNodes().length;
 
     return data.getChildCount(parent as CivilComponentProps);
+    */
+    return 0;
   }
 
-  public async getNodes(parent?: TreeNodeItem) {
+  public async getNodes(_parent?: TreeNodeItem) {
     const data = CivilDataModel.get();
+    /*
     let components: CivilComponentProps[];
 
     if (parent === undefined) {
@@ -66,6 +70,8 @@ class ModelBreakdownDataProvider implements ITreeDataProvider {
     } else {
       components = data.getChildren(parent as CivilComponentProps);
     }
+    */
+    const components = data.getAllComponents();
 
     const nodes = [];
     for (const component of components) {

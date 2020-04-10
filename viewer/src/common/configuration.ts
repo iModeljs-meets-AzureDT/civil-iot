@@ -57,5 +57,7 @@ export default function setupEnv() {
     // Set this to be the scopes of services the application needs to access
     // Note: The default value set above ensures the minimal working of the application
     imjs_browser_test_scope: "openid email profile organization imodelhub context-registry-service:read-only product-settings-service general-purpose-imodeljs-backend imodeljs-router",
+
+    imjs_offline_imodel: "c:\\code\\coffs-harbour-augmented.bim",
   });
 }

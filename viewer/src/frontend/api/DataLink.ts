@@ -4,6 +4,21 @@
 *--------------------------------------------------------------------------------------------*/
 import { IModelConnection } from "@bentley/imodeljs-frontend";
 
+export interface ClassMapQueryRow {
+  name: string;
+  id: string;
+}
+
+export interface CompositionItemQueryRow {
+  classId: string;
+  instanceId: string;
+  code: string;
+  classification: string;
+  parentId: string;
+  geometricId: string;
+  geometricCode: string;
+}
+
 export class DataLink {
 
   private _iModel: IModelConnection;
@@ -79,4 +94,24 @@ export class DataLink {
 
     return rows;
   }
+
+  public async queryRoadNetworkCompositionClasses(): Promise<ClassMapQueryRow[]> {
+    const query = `SELECT c.ecinstanceId, c.name
+    FROM meta.ECClassDef c, meta.ECSchemaDef s
+    WHERE c.schema.id = s.ecinstanceId AND s.name = 'RoadNetworkComposition'`;
+    const rows = await this.executeQuery(query);
+
+    return rows as ClassMapQueryRow[];
+  }
+
+  public async queryAllCompositionItems(): Promise<CompositionItemQueryRow[]> {
+    const query = `SELECT c.ECClassId classId, c.ECInstanceId instanceId, c.CodeValue code, c.Classification classification, c.parent.id parentId, g.ECInstanceId geometricId, g.CodeValue geometricCode
+    FROM RoadNetworkComposition.CompositionItem c
+    LEFT JOIN BisCore.ElementGroupsMembers r ON c.ECInstanceId=r.SourceECInstanceId
+    LEFT JOIN BisCore.GeometricElement3d g ON g.ECInstanceId=r.TargetECInstanceId`;
+    const rows = await this.executeQuery(query);
+
+    return rows as CompositionItemQueryRow[];
+  }
+
 }

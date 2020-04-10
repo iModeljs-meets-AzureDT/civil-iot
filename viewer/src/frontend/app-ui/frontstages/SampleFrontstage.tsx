@@ -58,10 +58,7 @@ export class SampleFrontstage extends FrontstageProvider {
     // Set default Presentation Rule Set Id in Redux store
     UiFramework.setDefaultRulesetId(this._rulesetId);
 
-    // TEMPORARY: just dump some stuff to the console on startup
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
-      this.consoleLogSubModelBreakdown(vp.iModel);
-
       // NEEDSWORK: find a better place to do this
       CivilDataModel.initialize(vp.iModel);
     });
@@ -90,74 +87,6 @@ export class SampleFrontstage extends FrontstageProvider {
         },
       ],
     });
-  }
-
-  private indentString(depth: number): string {
-    let indent = "";
-    for (let i = 0; i < depth; i++) {
-      indent += "    ";
-    }
-    return indent;
-  }
-
-  private async listSubModelContents(dataLink: DataLink, depth: number, modeledElementId: string): Promise<string> {
-    let output = "";
-    let physCount = 0;
-    const contents = await dataLink.querySubModelContentsForModeledElement(modeledElementId);
-    for (const content of contents) {
-      if (content.className === "Generic.PhysicalObject") {
-        physCount++;
-      } else {
-        output += this.indentString(depth) + content.className;
-        output += " (code = \"" + content.codeValue + "\")";
-        output += " (id = " + content.id + ")\n";
-        output += await this.listSubModelContents(dataLink, depth + 1, content.id);
-      }
-    }
-    if (physCount > 0)
-      output += this.indentString(depth) + "and " + physCount + " Generic.PhysicalObject\n";
-
-    return output;
-  }
-
-  private async consoleLogSubModelBreakdown(imodel: IModelConnection) {
-    const dataLink = new DataLink(imodel);
-    const networks = await dataLink.queryAllTransportationNetworks();
-
-    let output = "";
-    for (const network of networks) {
-      output = output + "Network " + JSON.stringify(network) + "\n";
-      output += await this.listSubModelContents(dataLink, 1, network.id);
-    }
-
-    console.log(output);
-  }
-
-  private async consoleLogCivilBreakdown(imodel: IModelConnection) {
-    const dataLink = new DataLink(imodel);
-    const networks = await dataLink.queryAllTransportationNetworks();
-
-    let output = "";
-    for (const network of networks) {
-      output = output + "Network " + JSON.stringify(network) + "\n";
-
-      const corridors = await dataLink.queryAllCorridorForTransportationNetwork(network.id);
-      for (const corridor of corridors) {
-        output = output + "    Corridor " + JSON.stringify(corridor) + "\n";
-
-        const systems = await dataLink.queryAllTransportationSystemsForCorridor(corridor.id);
-        for (const system of systems) {
-          output = output + "        System " + JSON.stringify(system) + "\n";
-
-          const roadways = await dataLink.queryAllRoadwaysForTransportationSystems(system.id);
-          for (const roadway of roadways) {
-            output = output + "            Roadway " + JSON.stringify(roadway) + "\n";
-          }
-        }
-      }
-    }
-
-    console.log(output);
   }
 
   /** Define the Frontstage properties */
