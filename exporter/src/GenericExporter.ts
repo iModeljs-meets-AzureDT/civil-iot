@@ -5,6 +5,7 @@ import * as path from "path";
 import { FileSystemUtils } from "./FileSystemUtils";
 
 const loggerCategory = "GenericExporter";
+let whereCounter = 0;
 
 export class GenericExporter {
   public iModelDb: IModelDb;
@@ -42,6 +43,7 @@ export class GenericExporter {
     this.exportInstancesOf("IoTDevices:Sensor");
     this.exportInstancesOf(PhysicalObject.classFullName);
     this.exportInstancesOf("RoadNetworkComposition:RoadNetwork"); // All RoadNetworks
+    this.exportInstancesOf("RoadNetworkComposition:RoadNetwork", "WHERE [Classification] IS NOT NULL"); // All National RoadNetworks
     this.exportInstancesOf("RoadNetworkComposition:Travelway"); // All Travelways (Roadways, Ramps)
     this.exportInstancesOf("RoadNetworkComposition:Roadway"); // All Roadways
     this.exportInstancesOf("RoadNetworkComposition:Ramp"); // All Ramps
@@ -89,10 +91,11 @@ export class GenericExporter {
   }
 
   public exportInstancesOf(classFullName: string, whereClause?: string): void {
-    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, classFullName.replace(":", "-") + "-Instances.txt");
+    const fileSuffix = whereClause ? `-W${++whereCounter}` : "";
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, classFullName.replace(":", "-") + `-Instances${fileSuffix}.txt`);
     let sql = `SELECT ECInstanceId FROM ${classFullName}`;
     if (undefined !== whereClause) {
-      sql += whereClause;
+      sql += " " + whereClause;
     }
     this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {

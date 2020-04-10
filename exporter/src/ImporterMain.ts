@@ -1,4 +1,4 @@
-import { IModelHost, IModelJsFs, SnapshotDb } from "@bentley/imodeljs-backend";
+import { IModelHost, IModelJsFs, SnapshotDb, BriefcaseManager } from "@bentley/imodeljs-backend";
 import * as path from "path";
 import { SensorImporter } from "./SensorImporter";
 
@@ -12,15 +12,27 @@ async function main(process: NodeJS.Process): Promise<void> {
     }
     IModelJsFs.mkdirSync(outputDir);
 
-    const iModelFileName = path.join(outputDir, "sensor-sample.bim");
-    const iModelDb: SnapshotDb = SnapshotDb.createEmpty(iModelFileName, {
-      rootSubject: { name: "Sensor Sample" },
-      createClassViews: true,
-    });
+    let iModelDb: SnapshotDb;
+    let inputDataFile: string;
+    if (false) {
+      inputDataFile = path.join(__dirname, "assets", "sample-input.json");
+      const iModelFileName = path.join(outputDir, "sensor-sample.bim");
+      iModelDb = SnapshotDb.createEmpty(iModelFileName, {
+        rootSubject: { name: "Sensor Sample" },
+        createClassViews: true,
+      });
+    } else {
+      inputDataFile = path.join(__dirname, "assets", "coffs-harbour-augmented.json");
+      const seedDbFile = "d:/data/bim/Coffs-Harbour-Pacific-Bypass-Snapshot.bim";
+      const seedDb: SnapshotDb = SnapshotDb.openFile(seedDbFile);
+      const iModelFileName = path.join(outputDir, "coffs-harbour-augmented.bim");
+      iModelDb = SnapshotDb.createFrom(seedDb, iModelFileName, { createClassViews: true });
+      BriefcaseManager.createStandaloneChangeSet(iModelDb); // WIP
+      seedDb.close();
+    }
     const importer = new SensorImporter(iModelDb);
     const iotSchemaFile = path.join(__dirname, "assets", "IoTDevices.ecschema.xml");
     const roadNetworkSchemaFile = path.join(__dirname, "assets", "RoadNetworkComposition.ecschema.xml");
-    const inputDataFile = path.join(__dirname, "assets", "sample-input.json");
     await importer.import([iotSchemaFile, roadNetworkSchemaFile], inputDataFile);
     iModelDb.close();
 
