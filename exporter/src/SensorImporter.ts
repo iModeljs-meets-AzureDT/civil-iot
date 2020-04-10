@@ -1,6 +1,6 @@
 import { GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
-import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ElementOwnsChildElements, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject, GeometricElement3dHasTypeDefinition } from "@bentley/imodeljs-backend";
+import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
 import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, Placement3dProps, RelatedElement, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import { ObservationTypeProps } from "./IoTDevices";
 import { CompositionItemProps, RoadNetworkClassification } from "./RoadNetworkComposition";
@@ -82,7 +82,7 @@ export class SensorImporter {
     }
     if (inputData.compositions) {
       inputData.compositions.forEach((compositionData: any) => {
-        this.insertCompositionElement(compositionData.name, compositionData.type, compositionData.classification, compositionData.parent);
+        this.insertCompositionElement(compositionData.name, compositionData.type, compositionData.classification, compositionData.parent, compositionData.groups);
       });
     }
     if (inputData.sensors) {
@@ -92,7 +92,7 @@ export class SensorImporter {
     }
   }
 
-  private insertCompositionElement(name: string, className: string, classification: RoadNetworkClassification, parentIdOrCode?: Id64String | string): Id64String {
+  private insertCompositionElement(name: string, className: string, classification: RoadNetworkClassification, parentIdOrCode?: Id64String | string, groupedIdsOrCodes?: Id64String[] | string[]): Id64String {
     let parent: RelatedElement | undefined;
     if (parentIdOrCode) {
       if (Id64.isValidId64(parentIdOrCode)) {
@@ -111,7 +111,21 @@ export class SensorImporter {
       parent,
       classification,
     };
-    return this._iModelDb.elements.insertElement(elementProps);
+    const compositionElementId: Id64String = this._iModelDb.elements.insertElement(elementProps);
+    if (groupedIdsOrCodes) {
+      groupedIdsOrCodes.forEach((groupedIdOrCode: Id64String | string) => {
+        let groupedId: Id64String | undefined;
+        if (Id64.isValidId64(groupedIdOrCode)) {
+          groupedId = groupedIdOrCode;
+        } else {
+          groupedId = this.tryQueryPhysicalObjectByCode(groupedIdOrCode);
+        }
+        if (groupedId) {
+          ElementGroupsMembers.insert(this._iModelDb, compositionElementId, groupedId);
+        }
+      });
+    }
+    return compositionElementId;
   }
 
   private tryQueryCompositionElementByCode(codeValue: string): Id64String | undefined {

@@ -183,84 +183,126 @@
     },
     {
       "name": "T1-SB",
+      "groups": [
+        "T1-SB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "T1-NB",
+      "groups": [
+        "T1-NB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "T2-SB",
+      "groups": [
+        "T2-SB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "T2-NB",
+      "groups": [
+        "T2-NB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "T3-SB",
+      "groups": [
+        "T3-SB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "T3-NB",
+      "groups": [
+        "T3-NB"
+      ],
       "type": "Tunnel",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR1-SB",
+      "groups": [
+        "BR1-SB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR1-NB",
+      "groups": [
+        "BR1-NB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR2-SB",
+      "groups": [
+        "BR2-SB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR2-NB",
+      "groups": [
+        "BR2-NB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR3-SB",
+      "groups": [
+        "BR3-SB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "BR3-NB",
+      "groups": [
+        "BR3-NB"
+      ],
       "type": "Bridge",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "R1-SB",
+      "groups": [
+        "R1-SB"
+      ],
       "type": "RoadSegment",
       "classification": "National",
       "parent": "Mainline Roadway"
     },
     {
       "name": "R1-NB",
+      "groups": [
+        "R1-NB"
+      ],
       "type": "RoadSegment",
       "classification": "National",
       "parent": "Mainline Roadway"
