@@ -41,6 +41,14 @@ export class GenericExporter {
     this.exportInstancesOf("IoTDevices:SensorType");
     this.exportInstancesOf("IoTDevices:Sensor");
     this.exportInstancesOf(PhysicalObject.classFullName);
+    this.exportInstancesOf("RoadNetworkComposition:RoadNetwork"); // All RoadNetworks
+    this.exportInstancesOf("RoadNetworkComposition:Travelway"); // All Travelways (Roadways, Ramps)
+    this.exportInstancesOf("RoadNetworkComposition:Roadway"); // All Roadways
+    this.exportInstancesOf("RoadNetworkComposition:Ramp"); // All Ramps
+    this.exportInstancesOf("RoadNetworkComposition:TravelwaySegment"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
+    this.exportInstancesOf("RoadNetworkComposition:Tunnel"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
+    this.exportInstancesOf("RoadNetworkComposition:Bridge"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
+    this.exportInstancesOf("RoadNetworkComposition:RoadSegment"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
     this.exportCompositionHierarchy();
   }
 
@@ -80,16 +88,17 @@ export class GenericExporter {
     });
   }
 
-  public exportInstancesOf(classFullName: string): void {
-    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, classFullName.replace(":", "-") + "-Instances.csv");
-    const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
-    this.iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM ${classFullName}`, (statement: ECSqlStatement): void => {
+  public exportInstancesOf(classFullName: string, whereClause?: string): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, classFullName.replace(":", "-") + "-Instances.txt");
+    let sql = `SELECT ECInstanceId FROM ${classFullName}`;
+    if (undefined !== whereClause) {
+      sql += whereClause;
+    }
+    this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const elementId: Id64String = statement.getValue(0).getId();
         const elementProps: ElementProps = this.iModelDb.elements.getElementProps(elementId);
         FileSystemUtils.writeLine(outputFileName, JSON.stringify(elementProps, undefined, 2));
-        // elementExporter.exportElement(elementId);
-        // writeLine(outputFileName, "");
       }
     });
   }
