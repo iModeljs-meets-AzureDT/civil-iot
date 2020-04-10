@@ -15,7 +15,7 @@ import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
 
 const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem => {
-  return ({ ...component, hasChildren });
+  return ({ ...component, hasChildren, icon: "announcement.svg" });
 };
 
 interface ModelBreakdownTreeProps {
