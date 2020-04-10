@@ -1,6 +1,6 @@
 import { GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
-import { BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
+import { BackendLoggerCategory, BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
 import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, Placement3dProps, RelatedElement, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import { ObservationTypeProps } from "./IoTDevices";
 import { CompositionItemProps, RoadNetworkClassification } from "./RoadNetworkComposition";
@@ -25,6 +25,7 @@ export class SensorImporter {
     if (true) { // initialize logging
       Logger.initializeToConsole();
       Logger.setLevelDefault(LogLevel.Error);
+      Logger.setLevel(BackendLoggerCategory.IModelDb, LogLevel.Warning);
       Logger.setLevel(loggerCategory, LogLevel.Trace);
     }
   }
@@ -35,7 +36,7 @@ export class SensorImporter {
     this.insertRepositoryModelHierarchy();
     this.insertCategories();
     this.insertData(inputDataFile);
-    this.updateProjectExtents();
+    // this.updateProjectExtents();
     this.insertView();
   }
 

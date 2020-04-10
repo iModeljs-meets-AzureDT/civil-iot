@@ -1,0 +1,404 @@
+{
+  "observationTypes": [
+    {
+      "name": "CO",
+      "unit": "ppm"
+    },
+    {
+      "name": "NO2",
+      "unit": "ppb"
+    },
+    {
+      "name": "Temperature",
+      "unit": "degrees Celsius"
+    },
+    {
+      "name": "Vehicle Count",
+      "unit": "average per hour"
+    },
+    {
+      "name": "Truck Count",
+      "unit": "average per hour"
+    },
+    {
+      "name": "Deflection",
+      "unit": "mm"
+    },
+    {
+      "name": "Vibration Amplitude",
+      "unit": "g"
+    }
+  ],
+  "sensorTypes": [
+    {
+      "name": "Baseline Air Sensor",
+      "federationGuid": "2b91d7d0-9fd3-4f8b-9af3-2a400b7caee5",
+      "observationTypes": [
+        "CO",
+        "NO2"
+      ]
+    },
+    {
+      "name": "Tunnel Air Sensor",
+      "federationGuid": "2f918d86-9c35-41b9-bc57-8e53ec0683f9",
+      "observationTypes": [
+        "CO",
+        "NO2"
+      ]
+    },
+    {
+      "name": "Exterior Thermometer",
+      "federationGuid": "ea174023-ee9e-480c-a70e-faf308d1241f",
+      "observationTypes": [
+        "Temperature"
+      ]
+    },
+    {
+      "name": "Interior Thermometer",
+      "federationGuid": "a1e8a9e4-27a6-4bb3-981f-61173c06a935",
+      "observationTypes": [
+        "Temperature"
+      ]
+    },
+    {
+      "name": "Vehicle Counter",
+      "federationGuid": "dd143ee4-9f0d-4ebc-b844-1f335647dd86",
+      "observationTypes": [
+        "Vehicle Count",
+        "Truck Count"
+      ]
+    },
+    {
+      "name": "Bridge Sensor",
+      "federationGuid": "9adddb0e-1b6b-4399-92c8-b6322a57d028",
+      "observationTypes": [
+        "Deflection",
+        "Vibration Amplitude"
+      ]
+    }
+  ],
+  "compositions": [
+    {
+      "name": "Pacific Highway",
+      "type": "RoadNetwork",
+      "classification": "National"
+    },
+    {
+      "name": "Mainline Roadway",
+      "type": "Roadway",
+      "classification": "National",
+      "parent": "Pacific Highway"
+    },
+    {
+      "name": "T1-SB",
+      "groups": [
+        "0x20000000a98"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T1-NB",
+      "groups": [
+        "0x20000000a96"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T2-SB",
+      "groups": [
+        "0x20000000ced"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T2-NB",
+      "groups": [
+        "0x20000000cef"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T3-SB",
+      "groups": [
+        "0x20000000cf1"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "T3-NB",
+      "groups": [
+        "0x20000000cdd"
+      ],
+      "type": "Tunnel",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR1-SB",
+      "groups": [
+        "0x2000000110b"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR1-NB",
+      "groups": [
+        "0x200000010cd"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR2-SB",
+      "groups": [
+        "0x2000000131b"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR2-NB",
+      "groups": [
+        "0x200000012dd"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR3-SB",
+      "groups": [
+        "0x20000001803"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "BR3-NB",
+      "groups": [
+        "0x200000017f5"
+      ],
+      "type": "Bridge",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "R1-SB",
+      "groups": [
+        "0x20000000777"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "R1-NB",
+      "groups": [
+        "0x200000007a3"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Mainline Roadway"
+    },
+    {
+      "name": "Harrison Street",
+      "type": "Roadway",
+      "classification": "Local"
+    },
+    {
+      "name": "Harrison Street - 1",
+      "groups": [
+        "0x2000000049b"
+      ],
+      "type": "RoadSegment",
+      "classification": "Local",
+      "parent": "Harrison Street"
+    },
+    {
+      "name": "Harrison Street - 2",
+      "groups": [
+        "0x20000000495"
+      ],
+      "type": "RoadSegment",
+      "classification": "Local",
+      "parent": "Harrison Street"
+    }
+  ],
+  "sensors": [
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T1-SB-INT-AIR-1",
+      "observes": "T1-SB",
+      "origin": [
+        83.33333333333333,
+        0,
+        10
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T1-SB-INT-AIR-2",
+      "observes": "T1-SB",
+      "origin": [
+        166.66666666666666,
+        0,
+        10
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T1-SB-INT-TEMP-1",
+      "observes": "T1-SB",
+      "origin": [
+        83.33333333333333,
+        40,
+        10
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T1-SB-INT-TEMP-2",
+      "observes": "T1-SB",
+      "origin": [
+        166.66666666666666,
+        40,
+        10
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T1-SB-EXT-AIR-1",
+      "observes": "T1-SB",
+      "origin": [
+        0,
+        13.333333333333334,
+        15
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T1-SB-EXT-TEMP-1",
+      "observes": "T1-SB",
+      "origin": [
+        0,
+        26.666666666666668,
+        15
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T1-NB-INT-AIR-1",
+      "observes": "T1-NB",
+      "origin": [
+        83.33333333333333,
+        60,
+        10
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T1-NB-INT-AIR-2",
+      "observes": "T1-NB",
+      "origin": [
+        166.66666666666666,
+        60,
+        10
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T1-NB-INT-TEMP-1",
+      "observes": "T1-NB",
+      "origin": [
+        83.33333333333333,
+        100,
+        10
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T1-NB-INT-TEMP-2",
+      "observes": "T1-NB",
+      "origin": [
+        166.66666666666666,
+        100,
+        10
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T1-NB-EXT-AIR-1",
+      "observes": "T1-NB",
+      "origin": [
+        250,
+        73.33333333333333,
+        15
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T1-NB-EXT-TEMP-1",
+      "observes": "T1-NB",
+      "origin": [
+        250,
+        86.66666666666667,
+        15
+      ]
+    },
+    {
+      "type": "Vehicle Counter",
+      "name": "R1-SB-VC1",
+      "observes": "R1-SB",
+      "origin": [
+        500,
+        40,
+        0.1
+      ]
+    },
+    {
+      "type": "Vehicle Counter",
+      "name": "R1-NB-VC1",
+      "observes": "R1-NB",
+      "origin": [
+        500,
+        60,
+        0.1
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR1-SB-BS-1",
+      "observes": "BR1-SB",
+      "origin": [
+        875,
+        -5,
+        0.1
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR1-NB-BS-1",
+      "observes": "BR1-NB",
+      "origin": [
+        875,
+        105,
+        0.1
+      ]
+    }
+  ]
+}
