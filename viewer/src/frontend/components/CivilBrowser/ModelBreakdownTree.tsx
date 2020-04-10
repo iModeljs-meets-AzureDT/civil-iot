@@ -8,14 +8,16 @@ import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider,
   useModelSource, useNodeLoader, TreeNodeItem,
   TreeEventHandler, TreeDataChangesListener,
-  DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent, TreeModelSource,
+  DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent,
+  ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage, TreeNodeRendererProps, TreeNodeRenderer, TreeRendererProps, TreeRenderer,
 } from "@bentley/ui-components";
 import { BeEvent } from "@bentley/bentleyjs-core";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
 
 const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem => {
-  return ({ ...component, hasChildren });
+  const icon = CivilDataModel.getIconForComponent(component.type);
+  return ({ ...component, hasChildren, icon });
 };
 
 interface ModelBreakdownTreeProps {
@@ -31,12 +33,16 @@ export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {
   const visibleNodes = useVisibleTreeNodes(nodeLoader.modelSource);
 
   return <>
-    <ControlledTree
-      nodeLoader={nodeLoader}
-      selectionMode={SelectionMode.SingleAllowDeselect}
-      treeEvents={eventHandler}
-      visibleNodes={visibleNodes}
-    />
+    <div className="model-breakdown-tree">
+      <ControlledTree
+        nodeLoader={nodeLoader}
+        selectionMode={SelectionMode.SingleAllowDeselect}
+        treeEvents={eventHandler}
+        visibleNodes={visibleNodes}
+        iconsEnabled={true}
+        treeRenderer={modelBreakdownTreeRenderer}
+      />
+    </div>
   </>;
 }
 
@@ -104,4 +110,21 @@ class ModelBreakdownSelectionHandler extends TreeEventHandler {
     baseSubscription?.add(subscription);
     return baseSubscription;
   }
+}
+
+class ModelBreakdownTreeImageLoader implements ITreeImageLoader {
+  public load(item: TreeNodeItem | BeInspireTreeNodeITree): LoadedImage | undefined {
+    // setup path to the folder containing tree icons (it should be somewhere in ‘./lib/webresources’)
+    const pathToIcons = "";
+    return item.icon ? { sourceType: "url", value: `${pathToIcons}${item.icon}` } : undefined;
+  }
+}
+const modelBreakdownTreeImageLoader = new ModelBreakdownTreeImageLoader();
+
+function modelBreakdownTreeNodeRenderer(props: TreeNodeRendererProps) {
+  return <TreeNodeRenderer {...props} imageLoader={modelBreakdownTreeImageLoader} />;
+}
+
+function modelBreakdownTreeRenderer(props: TreeRendererProps) {
+  return <TreeRenderer {...props} nodeRenderer={modelBreakdownTreeNodeRenderer} />;
 }

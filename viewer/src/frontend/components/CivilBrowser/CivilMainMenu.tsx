@@ -9,7 +9,8 @@ import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider,
   useModelSource, useNodeLoader, TreeNodeItem,
   TreeEventHandler, TreeDataChangesListener,
-  DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent, TreeModelSource,
+  DelayLoadedTreeNodeItem, AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent,
+  TreeRenderer, TreeRendererProps, TreeNodeRenderer, TreeNodeRendererProps, ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage,
 } from "@bentley/ui-components";
 import { useDisposable } from "@bentley/ui-core";
 import { BeEvent } from "@bentley/bentleyjs-core";
@@ -33,6 +34,8 @@ export function CivilMainMenu(props: CivilMainMenuProps) {
         selectionMode={SelectionMode.SingleAllowDeselect}
         treeEvents={eventHandler}
         visibleNodes={visibleNodes}
+        iconsEnabled={true}
+        treeRenderer={mainMenuTreeRenderer}
       />
     </div>
   </>;
@@ -48,16 +51,16 @@ export class MenuDataProvider implements ITreeDataProvider {
   public async getNodes(parent?: TreeNodeItem) {
     if (parent === undefined) {
       return [
-        this.createNode(CivilBrowserMode.ModelBreakdown, "Model Breakdown"),
-        this.createNode(CivilBrowserMode.Assets, "Assets"),
-        this.createNode(CivilBrowserMode.Sensors, "Sensors"),
+        this.createNode(CivilBrowserMode.ModelBreakdown, "Model Breakdown", "HierarchyTree_36.png"),
+        this.createNode(CivilBrowserMode.Assets, "Assets", "Road_36.png"),
+        this.createNode(CivilBrowserMode.Sensors, "Sensors", "Dashboard_2.svg"),
       ];
     }
     return [];
   }
 
-  private createNode = (id: string, label: string): DelayLoadedTreeNodeItem => {
-    return { id, label, hasChildren: false };
+  private createNode = (id: string, label: string, icon: string): DelayLoadedTreeNodeItem => {
+    return { id, label, hasChildren: false, icon };
   }
 }
 
@@ -94,4 +97,21 @@ class MainMenuSelectionHandler extends TreeEventHandler {
     baseSubscription?.add(subscription);
     return baseSubscription;
   }
+}
+
+class MainMenuTreeImageLoader implements ITreeImageLoader {
+  public load(item: TreeNodeItem | BeInspireTreeNodeITree): LoadedImage | undefined {
+    // setup path to the folder containing tree icons (it should be somewhere in ‘./lib/webresources’)
+    const pathToIcons = "";
+    return item.icon ? { sourceType: "url", value: `${pathToIcons}${item.icon}` } : undefined;
+  }
+}
+const mainMenuTreeImageLoader = new MainMenuTreeImageLoader();
+
+function modelBreakdownTreeNodeRenderer(props: TreeNodeRendererProps) {
+  return <TreeNodeRenderer {...props} imageLoader={mainMenuTreeImageLoader} />;
+}
+
+function mainMenuTreeRenderer(props: TreeRendererProps) {
+  return <TreeRenderer {...props} nodeRenderer={modelBreakdownTreeNodeRenderer} />;
 }

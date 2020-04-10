@@ -31,4 +31,23 @@
     font-size: 20px;
     margin-top: 10px;
   }
+
+  .core-tree-node-icon {
+    img {
+    height: 1em;
+    width: 1em;
+    }
+  }
+}
+
+.model-breakdown-tree {
+  height: 100%;
+  width: 100%;
+
+  .core-tree-node-icon {
+    img {
+    height: 1em;
+    width: 1em;
+    }
+  }
 }
