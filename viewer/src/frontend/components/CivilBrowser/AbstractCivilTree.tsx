@@ -8,9 +8,9 @@ import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider, TreeEventHandler,
   useModelSource, useNodeLoader, TreeNodeItem,
   AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent,
-  ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage, TreeNodeRendererProps, TreeNodeRenderer, TreeRendererProps, TreeRenderer,
+  ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage, TreeNodeRendererProps, TreeNodeRenderer, TreeRendererProps, TreeRenderer, DelayLoadedTreeNodeItem,
 } from "@bentley/ui-components";
-import { CivilComponentProps } from "../../api/CivilDataModel";
+import { CivilComponentProps, CivilDataModel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
 
 interface AbstractCivilTreeProps {
@@ -37,6 +37,11 @@ export function AbstractCivilTree(props: AbstractCivilTreeProps) {
       />
     </div>
   </>;
+}
+
+export function createCivilComponentTreeNode(component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem {
+  const icon = CivilDataModel.getIconForComponent(component.type);
+  return ({ ...component, hasChildren, icon });
 }
 
 class AbstractCivilSelectionHandler extends TreeEventHandler {

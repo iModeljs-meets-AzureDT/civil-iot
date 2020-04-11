@@ -4,14 +4,9 @@
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
 import "./CivilBrowser.scss";
-import { ITreeDataProvider, TreeNodeItem, DelayLoadedTreeNodeItem } from "@bentley/ui-components";
+import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
-import { AbstractCivilTree } from "./AbstractCivilTree";
-
-const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): DelayLoadedTreeNodeItem => {
-  const icon = CivilDataModel.getIconForComponent(component.type);
-  return ({ ...component, hasChildren, icon });
-};
+import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
 
 interface SensorTreeProps {
   onNodeSelected(component: CivilComponentProps): void;
@@ -44,7 +39,7 @@ class SensorDataProvider implements ITreeDataProvider {
 
     const nodes = [];
     for (const component of components) {
-      nodes.push(createTreeNode(component, false));
+      nodes.push(createCivilComponentTreeNode(component, false));
     }
 
     return nodes;

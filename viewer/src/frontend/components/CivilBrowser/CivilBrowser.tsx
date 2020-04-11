@@ -10,6 +10,7 @@ import { CivilMainMenu } from "./CivilMainMenu";
 import { CivilComponentProps } from "../../api/CivilDataModel";
 import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
+import { AssetTree } from "./AssetTree";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -73,6 +74,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.Assets: {
+        content = <AssetTree onNodeSelected={this._componentSelected} />;
         title = "Assets";
         break;
       }
