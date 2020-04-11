@@ -49,33 +49,28 @@ export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {
 class ModelBreakdownDataProvider implements ITreeDataProvider {
   public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
 
-  public async getNodesCount(_parent?: TreeNodeItem) {
-    /*
-    const data = CivilDataModel.get();
-    if (parent === undefined)
-      return data.getAllTopNodes().length;
+  public async getNodesCount(parent?: TreeNodeItem) {
+    let parentId: string = "";
 
-    return data.getChildCount(parent as CivilComponentProps);
-    */
-    return 0;
+    if (parent)
+      parentId = parent.id;
+
+    const data = CivilDataModel.get();
+    return data.getChildCount(parentId);
   }
 
-  public async getNodes(_parent?: TreeNodeItem) {
-    const data = CivilDataModel.get();
-    /*
-    let components: CivilComponentProps[];
+  public async getNodes(parent?: TreeNodeItem) {
+    let parentId: string = "";
 
-    if (parent === undefined) {
-      components = data.getAllTopNodes();
-    } else {
-      components = data.getChildren(parent as CivilComponentProps);
-    }
-    */
-    const components = data.getAllComponents();
+    if (parent)
+      parentId = parent.id;
+
+    const data = CivilDataModel.get();
+    const components = data.getComponentsForParent(parentId);
 
     const nodes = [];
     for (const component of components) {
-      const hasChildren = false; // 0 < data.getChildCount(component);
+      const hasChildren = 0 < data.getChildCount(component.id);
       nodes.push(createTreeNode(component, hasChildren));
     }
 
