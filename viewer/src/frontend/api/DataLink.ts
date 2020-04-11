@@ -21,6 +21,7 @@ export interface CompositionItemQueryRow {
 
 export interface SensorQueryRow {
   id: string;
+  position: any;
   code: string;
   typeCode: string;
   observedId: string;
@@ -124,7 +125,7 @@ export class DataLink {
 
   public async queryAllSensors(): Promise<SensorQueryRow[]> {
     const query = `
-    SELECT s.EcInstanceId id, s.CodeValue code, t.ECInstanceId typeId, t.CodeValue typeCode, c.ECInstanceId observedId, c.CodeValue observedCode
+    SELECT s.EcInstanceId id, s.Origin position, s.CodeValue code, t.ECInstanceId typeId, t.CodeValue typeCode, c.ECInstanceId observedId, c.CodeValue observedCode
     FROM iot:Sensor s,iot:SensorType t,rnc:CompositionItem c,iot:SensorObservesElement o
     WHERE s.typeDefinition.id=t.ECInstanceId AND s.ECInstanceId=o.SourceECInstanceId AND c.ECInstanceId=o.TargetECInstanceId`;
     const rows = await this.executeQuery(query);
