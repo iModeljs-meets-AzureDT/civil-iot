@@ -50,9 +50,11 @@ export class AdtExporter {
   }
 
   public exportAdtTypes(): void {
+    const physicalObjectClass = this.createAdtTypeObject(PhysicalObject.className, [
+      { "@type": "Property", "schema": "string", "name": "name" }, // Element.CodeValue
+    ]);
     const compositionClasses: any[] = this.createCompositionTypes();
     const sensorClass = this.createAdtTypeObject("Sensor", [
-      { "@type": "Property", "schema": "string", "name": "name" }, // Sensor.CodeValue
       { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
       { "@type": "Property", "schema": "string", "name": "deviceId" }, // deviceId in IoT Hub
       { "@type": "Relationship", "target": this.buildAdtTypeUrn(PhysicalObject.className), "name": "observes" }, // SensorObservesElement
@@ -63,8 +65,8 @@ export class AdtExporter {
       { "@type": "Property", "schema": "string", "name": "observationLabel2" },
       { "@type": "Property", "schema": "string", "name": "observationUnit2" },
       { "@type": "Telemetry", "schema": "double", "name": "observationValue2" },
-    ]);
-    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", compositionClasses.concat(sensorClass));
+    ], PhysicalObject.className);
+    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", [physicalObjectClass, sensorClass].concat(compositionClasses));
   }
 
   private createCompositionTypes(): any[] {
@@ -78,10 +80,9 @@ export class AdtExporter {
     });
     return compositionTypeNames.map((compositionTypeName: string) => {
       return this.createAdtTypeObject(compositionTypeName, [
-        { "@type": "Property", "schema": "string", "name": "name" }, // Element.CodeValue
         { "@type": "Property", "schema": "string", "name": "classification" }, // CompositionItem.Classification
         { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
-      ]);
+      ], PhysicalObject.className); // For ADT purposes, all CompositionItem subclass extends PhysicalObject
     });
   }
 
@@ -136,13 +137,14 @@ export class AdtExporter {
     FileSystemUtils.writeJsonFile(this.outputDir, "adt-instances.json", observedObjects.concat(sensorInstances));
   }
 
-  private createAdtTypeObject(className: string, memberDefs: AdtMemberDef[]): any {
+  private createAdtTypeObject(className: string, memberDefs: AdtMemberDef[], baseClassName?: string): any {
     return {
       "@id": this.buildAdtTypeUrn(className),
       "@type": "Interface",
       "@context": "http://azure.com/v3/contexts/Model.json",
       "displayName": className,
       "contents": memberDefs,
+      "extends": baseClassName ? [this.buildAdtTypeUrn(baseClassName)] : undefined,
     };
   }
 
@@ -155,12 +157,12 @@ export class AdtExporter {
   }
 
   private buildAdtTypeUrn(className: string): string {
-    const versionNumber = 1; // needs to be incremented each time the schema changes after it has been uploaded to ADT
-    return `urn:civil-iot:adt-type:${className}:${versionNumber}`;
+    const versionNumber = 2; // needs to be incremented each time the schema changes after it has been uploaded to ADT
+    return `urn:chb:adtType:${className}:${versionNumber}`;
   }
 
   private buildElementUrn(elementId: Id64String): string {
-    return `urn:iModel-element:${this.iModelDb.iModelId}#${elementId}`;
+    return `urn:iModelElement:${this.iModelDb.iModelId}#${elementId}`;
   }
 
   private queryObservedElement(sensorId: Id64String): Id64String | undefined {

@@ -14,7 +14,9 @@ async function main(process: NodeJS.Process): Promise<void> {
 
     let iModelDb: SnapshotDb;
     let inputDataFile: string;
+    let isAugment: boolean;
     if (false) {
+      isAugment = false;
       inputDataFile = path.join(__dirname, "assets", "sample-input.json");
       const iModelFileName = path.join(outputDir, "sensor-sample.bim");
       iModelDb = SnapshotDb.createEmpty(iModelFileName, {
@@ -22,6 +24,7 @@ async function main(process: NodeJS.Process): Promise<void> {
         createClassViews: true,
       });
     } else {
+      isAugment = true;
       inputDataFile = path.join(__dirname, "assets", "coffs-harbour-augmented.json");
       const seedDbFile = "d:/data/bim/Coffs-Harbour-Pacific-Bypass-Snapshot.bim";
       const seedDb: SnapshotDb = SnapshotDb.openFile(seedDbFile);
@@ -33,7 +36,7 @@ async function main(process: NodeJS.Process): Promise<void> {
     const importer = new SensorImporter(iModelDb);
     const iotSchemaFile = path.join(__dirname, "assets", "IoTDevices.ecschema.xml");
     const roadNetworkSchemaFile = path.join(__dirname, "assets", "RoadNetworkComposition.ecschema.xml");
-    await importer.import([iotSchemaFile, roadNetworkSchemaFile], inputDataFile);
+    await importer.import([iotSchemaFile, roadNetworkSchemaFile], inputDataFile, isAugment);
     iModelDb.close();
 
     IModelHost.shutdown();

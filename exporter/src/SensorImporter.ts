@@ -13,7 +13,7 @@ export class SensorImporter {
   private _definitionModelId!: Id64String;
   private _compositionModelId!: Id64String;
   private _sensorCategoryId!: Id64String;
-  private _physicalObjectCategoryId!: Id64String;
+  // private _physicalObjectCategoryId!: Id64String;
   private _sensorTypeCodeSpecId!: Id64String;
   private _observationTypeCodeSpecId!: Id64String;
   private _sensorCodeSpecId!: Id64String;
@@ -30,13 +30,15 @@ export class SensorImporter {
     }
   }
 
-  public async import(schemaFiles: string[], inputDataFile: string): Promise<void> {
+  public async import(schemaFiles: string[], inputDataFile: string, isAugment: boolean): Promise<void> {
     await this.importSchema(schemaFiles);
     this.insertCodeSpecs();
     this.insertRepositoryModelHierarchy();
     this.insertCategories();
     this.insertData(inputDataFile);
-    // this.updateProjectExtents();
+    if (!isAugment) {
+      this.updateProjectExtents();
+    }
     this.insertView();
   }
 
@@ -53,14 +55,14 @@ export class SensorImporter {
   }
 
   private insertRepositoryModelHierarchy(): void {
-    const subjectId: Id64String = Subject.insert(this._iModelDb, IModel.rootSubjectId, "Sensors");
-    this._definitionModelId = DefinitionModel.insert(this._iModelDb, subjectId, "Definitions");
-    this._physicalModelId = PhysicalModel.insert(this._iModelDb, subjectId, "Physical");
-    this._compositionModelId = GroupModel.insert(this._iModelDb, subjectId, "Composition");
+    const subjectId: Id64String = Subject.insert(this._iModelDb, IModel.rootSubjectId, "IoT");
+    this._definitionModelId = DefinitionModel.insert(this._iModelDb, subjectId, "IoT Definitions");
+    this._physicalModelId = PhysicalModel.insert(this._iModelDb, subjectId, "Sensors");
+    this._compositionModelId = GroupModel.insert(this._iModelDb, subjectId, "Road Network Composition");
   }
 
   private insertCategories(): void {
-    this._physicalObjectCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Physical Objects", { color: ColorDef.green });
+    // this._physicalObjectCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Physical Objects", { color: ColorDef.green });
     this._sensorCategoryId = SpatialCategory.insert(this._iModelDb, this._definitionModelId, "Sensors", { color: ColorDef.from(255, 255, 0) });
   }
 
@@ -76,11 +78,11 @@ export class SensorImporter {
         this.insertSensorType(sensorTypeData.name, sensorTypeData.federationGuid, sensorTypeData.observationTypes);
       });
     }
-    if (inputData.physicalObjects) {
-      inputData.physicalObjects.forEach((physicalObjectData: any) => {
-        this.insertPhysicalObject(physicalObjectData.name, physicalObjectData.size, physicalObjectData.placement);
-      });
-    }
+    // if (inputData.physicalObjects) {
+    //   inputData.physicalObjects.forEach((physicalObjectData: any) => {
+    //     this.insertPhysicalObject(physicalObjectData.name, physicalObjectData.size, physicalObjectData.placement);
+    //   });
+    // }
     if (inputData.compositions) {
       inputData.compositions.forEach((compositionData: any) => {
         this.insertCompositionElement(compositionData.name, compositionData.type, compositionData.classification, compositionData.parent, compositionData.groups);
@@ -133,18 +135,18 @@ export class SensorImporter {
     return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._compositionCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
-  private insertPhysicalObject(name: string, size: XYZProps, placement: Placement3dProps): Id64String {
-    const boxGeometry: GeometryStreamProps = this.createBox(size);
-    const elementProps: GeometricElement3dProps = {
-      classFullName: PhysicalObject.classFullName,
-      model: this._physicalModelId,
-      category: this._physicalObjectCategoryId,
-      code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: name },
-      placement,
-      geom: boxGeometry,
-    };
-    return this._iModelDb.elements.insertElement(elementProps);
-  }
+  // private insertPhysicalObject(name: string, size: XYZProps, placement: Placement3dProps): Id64String {
+  //   const boxGeometry: GeometryStreamProps = this.createBox(size);
+  //   const elementProps: GeometricElement3dProps = {
+  //     classFullName: PhysicalObject.classFullName,
+  //     model: this._physicalModelId,
+  //     category: this._physicalObjectCategoryId,
+  //     code: { spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: name },
+  //     placement,
+  //     geom: boxGeometry,
+  //   };
+  //   return this._iModelDb.elements.insertElement(elementProps);
+  // }
 
   private tryQueryPhysicalObjectByCode(codeValue: string): Id64String | undefined {
     return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
@@ -197,7 +199,11 @@ export class SensorImporter {
     return observationTypeId;
   }
 
-  private insertSensor(name: string, sensorTypeIdOrCode: Id64String | string, origin: XYZProps, observedIdOrCode: Id64String | string): Id64String {
+  private insertSensor(name: string, sensorTypeIdOrCode: Id64String | string, originXYZ: XYZProps, observedIdOrCode: Id64String | string): Id64String {
+    const origin = Point3d.fromJSON(originXYZ);
+    if (!this._iModelDb.projectExtents.containsXYZ(origin.x, origin.y, origin.z)) {
+      Logger.logError(loggerCategory, `"${name}" with origin "${JSON.stringify(origin)}" is outside projectExtents "${JSON.stringify(this._iModelDb.projectExtents)}"`);
+    }
     let sensorType: RelatedElement | undefined;
     if (Id64.isValidId64(sensorTypeIdOrCode)) {
       sensorType = new GeometricElement3dHasTypeDefinition(sensorTypeIdOrCode);
@@ -258,8 +264,11 @@ export class SensorImporter {
   private insertView(): Id64String {
     const physicalModel: PhysicalModel = this._iModelDb.models.getModel<PhysicalModel>(this._physicalModelId);
     const viewExtents: AxisAlignedBox3d = physicalModel.queryExtents();
+    if (!this._iModelDb.projectExtents.containsRange(viewExtents)) {
+      Logger.logError(loggerCategory, "insertView - projectExtents problem");
+    }
     const modelSelectorId = ModelSelector.insert(this._iModelDb, this._definitionModelId, "Sensor Models", [this._physicalModelId]);
-    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, "Sensor Categories", [this._sensorCategoryId, this._physicalObjectCategoryId]);
+    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, "Sensor Categories", [this._sensorCategoryId /*, this._physicalObjectCategoryId */]);
     const displayStyleId = DisplayStyle3d.insert(this._iModelDb, this._definitionModelId, "Display Style");
     const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, "Sensor View", modelSelectorId, categorySelectorId, displayStyleId, viewExtents, StandardViewIndex.Iso);
     this._iModelDb.views.setDefaultViewId(viewId);

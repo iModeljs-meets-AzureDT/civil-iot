@@ -1,5 +1,5 @@
 import { DbResult, GuidString, Id64, Id64String, Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject } from "@bentley/imodeljs-backend";
+import { ECSqlStatement, Element, IModelDb, IModelExporter, IModelExportHandler, IModelJsFs, Model, PhysicalObject, SpatialCategory, ElementGroupsMembers, DefinitionModel, GeometricModel3d } from "@bentley/imodeljs-backend";
 import { ElementProps, IModel } from "@bentley/imodeljs-common";
 import * as path from "path";
 import { FileSystemUtils } from "./FileSystemUtils";
@@ -32,12 +32,12 @@ export class GenericExporter {
       this.exportInstancesOf("RoadPhysical:RoadNetwork");
       this.exportInstancesOf("RailPhysical:RailNetwork");
       this.exportInstancesOf("BridgeStructuralPhysical:Bridge");
-      this.exportModels();
       this.exportInstancesWithProperty("Description");
       this.exportHierarchy();
       this.exportInstancesOf("BisCore:SpatialElement");
       this.exportInstancesOf("BisCore:GraphicalElement3d");
     }
+    this.exportModels(GeometricModel3d.classFullName);
     this.exportInstancesOf("IoTDevices:ObservationType");
     this.exportInstancesOf("IoTDevices:SensorType");
     this.exportInstancesOf("IoTDevices:Sensor");
@@ -51,7 +51,46 @@ export class GenericExporter {
     this.exportInstancesOf("RoadNetworkComposition:Tunnel"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
     this.exportInstancesOf("RoadNetworkComposition:Bridge"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
     this.exportInstancesOf("RoadNetworkComposition:RoadSegment"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
+    this.exportGrouped();
+    this.exportCategories();
     this.exportCompositionHierarchy();
+    this.exportLocation();
+  }
+
+  private exportLocation(): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `Location.txt`);
+    FileSystemUtils.writeLine(outputFileName, `globalOrigin = ${JSON.stringify(this.iModelDb.globalOrigin)}`);
+    FileSystemUtils.writeLine(outputFileName, `projectExtents = ${JSON.stringify(this.iModelDb.projectExtents)}`);
+    FileSystemUtils.writeLine(outputFileName, `ecefLocation = ${JSON.stringify(this.iModelDb.ecefLocation)}`);
+  }
+
+  public exportCategories(): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `${SpatialCategory.className}.txt`);
+    const sql = `SELECT ECInstanceId FROM ${SpatialCategory.classFullName}`;
+    this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): void => {
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        const categoryId: Id64String = statement.getValue(0).getId();
+        const category: SpatialCategory = this.iModelDb.elements.getElement<SpatialCategory>(categoryId);
+        const model: DefinitionModel = this.iModelDb.models.getModel<DefinitionModel>(category.model);
+        FileSystemUtils.writeLine(outputFileName, `${category.id}, ${category.code.getValue()}, model=(${model.id}, "${model.name}")`);
+      }
+    });
+  }
+
+  public exportGrouped(): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `${ElementGroupsMembers.className}.txt`);
+    const sql = `SELECT SourceECInstanceId,TargetECInstanceId FROM ${ElementGroupsMembers.classFullName}`;
+    this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): void => {
+      while (DbResult.BE_SQLITE_ROW === statement.step()) {
+        const sourceElementId: Id64String = statement.getValue(0).getId();
+        const sourceElement: Element = this.iModelDb.elements.getElement(sourceElementId);
+        const sourceLabel: string = sourceElement.getDisplayLabel();
+        const targetElementId: Id64String = statement.getValue(1).getId();
+        const targetElement: Element = this.iModelDb.elements.getElement(targetElementId);
+        const targetLabel: string = targetElement.getDisplayLabel();
+        FileSystemUtils.writeLine(outputFileName, `${sourceElement.id}, ${sourceElement.className}, ${sourceLabel} --> ${targetElement.id}, ${targetElement.className}, ${targetLabel}`);
+      }
+    });
   }
 
   public exportSchemas(): void {
@@ -106,13 +145,23 @@ export class GenericExporter {
     });
   }
 
-  public exportModels(): void {
+  private buildModelPath(elementId: Id64String): string {
+    const element = this.iModelDb.elements.getElement(elementId);
+    if (element.parent?.id) {
+      if (element.parent.id !== IModel.rootSubjectId) {
+        return this.buildModelPath(element.parent.id) + "/" + element.code.getValue();
+      }
+    }
+    return "";
+  }
+
+  public exportModels(classFullName: string = Model.classFullName): void {
     const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "models.csv");
-    this.iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM ${Model.classFullName}`, (statement: ECSqlStatement): void => {
+    this.iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM ${classFullName}`, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const modelId: Id64String = statement.getValue(0).getId();
         const model: Model = this.iModelDb.models.getModel(modelId);
-        FileSystemUtils.writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${model.name}`);
+        FileSystemUtils.writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${this.buildModelPath(model.id)}`);
       }
     });
   }

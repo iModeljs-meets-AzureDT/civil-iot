@@ -137,7 +137,7 @@
     {
       "name": "T3-NB",
       "groups": [
-        "0x20000000cdd"
+        "0x20000000cf3"
       ],
       "type": "Tunnel",
       "classification": "National",
@@ -216,9 +216,57 @@
       "parent": "Mainline Roadway"
     },
     {
+      "name": "Ramps",
+      "type": "Ramp",
+      "classification": "National",
+      "parent": "Pacific Highway"
+    },
+    {
+      "name": "RAMP-SB-A",
+      "groups": [
+        "0x20000000e7e"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Ramps"
+    },
+    {
+      "name": "RAMP-NB-A",
+      "groups": [
+        "0x20000000ea9"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Ramps"
+    },
+    {
+      "name": "RAMP-SB-B",
+      "groups": [
+        "0x20000000edc"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Ramps"
+    },
+    {
+      "name": "RAMP-NB-B",
+      "groups": [
+        "0x20000000f21"
+      ],
+      "type": "RoadSegment",
+      "classification": "National",
+      "parent": "Ramps"
+    },
+    {
+      "name": "Johnson City",
+      "type": "RoadNetwork",
+      "classification": "Local"
+    },
+    {
       "name": "Harrison Street",
       "type": "Roadway",
-      "classification": "Local"
+      "classification": "Local",
+      "parent": "Johnson City"
     },
     {
       "name": "Harrison Street - 1",
@@ -237,6 +285,21 @@
       "type": "RoadSegment",
       "classification": "Local",
       "parent": "Harrison Street"
+    },
+    {
+      "name": "Willow Street",
+      "type": "Roadway",
+      "classification": "Local",
+      "parent": "Johnson City"
+    },
+    {
+      "name": "Willow Street - 1",
+      "groups": [
+        "0x2000000037b"
+      ],
+      "type": "RoadSegment",
+      "classification": "Local",
+      "parent": "Willow Street"
     }
   ],
   "sensors": [
@@ -245,9 +308,9 @@
       "name": "T1-SB-INT-AIR-1",
       "observes": "T1-SB",
       "origin": [
-        83.33333333333333,
-        0,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -255,9 +318,9 @@
       "name": "T1-SB-INT-AIR-2",
       "observes": "T1-SB",
       "origin": [
-        166.66666666666666,
-        0,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -265,9 +328,9 @@
       "name": "T1-SB-INT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
-        83.33333333333333,
-        40,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -275,9 +338,9 @@
       "name": "T1-SB-INT-TEMP-2",
       "observes": "T1-SB",
       "origin": [
-        166.66666666666666,
-        40,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -285,9 +348,9 @@
       "name": "T1-SB-EXT-AIR-1",
       "observes": "T1-SB",
       "origin": [
-        0,
-        13.333333333333334,
-        15
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -295,9 +358,9 @@
       "name": "T1-SB-EXT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
-        0,
-        26.666666666666668,
-        15
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -305,9 +368,9 @@
       "name": "T1-NB-INT-AIR-1",
       "observes": "T1-NB",
       "origin": [
-        83.33333333333333,
-        60,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -315,9 +378,9 @@
       "name": "T1-NB-INT-AIR-2",
       "observes": "T1-NB",
       "origin": [
-        166.66666666666666,
-        60,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -325,9 +388,9 @@
       "name": "T1-NB-INT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
-        83.33333333333333,
-        100,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -335,9 +398,9 @@
       "name": "T1-NB-INT-TEMP-2",
       "observes": "T1-NB",
       "origin": [
-        166.66666666666666,
-        100,
-        10
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -345,9 +408,9 @@
       "name": "T1-NB-EXT-AIR-1",
       "observes": "T1-NB",
       "origin": [
-        250,
-        73.33333333333333,
-        15
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -355,9 +418,9 @@
       "name": "T1-NB-EXT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
-        250,
-        86.66666666666667,
-        15
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -365,9 +428,9 @@
       "name": "R1-SB-VC1",
       "observes": "R1-SB",
       "origin": [
-        500,
-        40,
-        0.1
+        508102.2756692797,
+        6647716.126457273,
+        18.16489748164695
       ]
     },
     {
@@ -375,9 +438,9 @@
       "name": "R1-NB-VC1",
       "observes": "R1-NB",
       "origin": [
-        500,
-        60,
-        0.1
+        508105.6142218534,
+        6647697.991151022,
+        17.92284343151005
       ]
     },
     {
@@ -385,9 +448,9 @@
       "name": "BR1-SB-BS-1",
       "observes": "BR1-SB",
       "origin": [
-        875,
-        -5,
-        0.1
+        508169.777,
+        6648025.777,
+        31.777
       ]
     },
     {
@@ -395,9 +458,9 @@
       "name": "BR1-NB-BS-1",
       "observes": "BR1-NB",
       "origin": [
-        875,
-        105,
-        0.1
+        508169.777,
+        6648025.777,
+        31.777
       ]
     }
   ]
