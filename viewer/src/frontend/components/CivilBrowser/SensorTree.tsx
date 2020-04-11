@@ -20,70 +20,53 @@ const createTreeNode = (component: CivilComponentProps, hasChildren: boolean): D
   return ({ ...component, hasChildren, icon });
 };
 
-interface ModelBreakdownTreeProps {
+interface SensorTreeProps {
   onNodeSelected(component: CivilComponentProps): void;
 }
 
-export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {
-  const dataProvider = React.useMemo(() => new ModelBreakdownDataProvider(), []);
+export function SensorTree(props: SensorTreeProps) {
+  const dataProvider = React.useMemo(() => new SensorDataProvider(), []);
   const modelSource = useModelSource(dataProvider);
   const nodeLoader = useNodeLoader(dataProvider, modelSource);
 
-  const eventHandler = useDisposable(React.useCallback(() => new ModelBreakdownSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
+  const eventHandler = useDisposable(React.useCallback(() => new SensorSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
   const visibleNodes = useVisibleTreeNodes(nodeLoader.modelSource);
 
   return <>
-    <div className="model-breakdown-tree">
+    <div className="sensor-tree">
       <ControlledTree
         nodeLoader={nodeLoader}
         selectionMode={SelectionMode.SingleAllowDeselect}
         treeEvents={eventHandler}
         visibleNodes={visibleNodes}
         iconsEnabled={true}
-        treeRenderer={modelBreakdownTreeRenderer}
+        treeRenderer={sensorTreeRenderer}
       />
     </div>
   </>;
 }
 
-class ModelBreakdownDataProvider implements ITreeDataProvider {
+class SensorDataProvider implements ITreeDataProvider {
   public onTreeNodeChanged = new BeEvent<TreeDataChangesListener>();
 
   public async getNodesCount(_parent?: TreeNodeItem) {
-    /*
-    const data = CivilDataModel.get();
-    if (parent === undefined)
-      return data.getAllTopNodes().length;
-
-    return data.getChildCount(parent as CivilComponentProps);
-    */
     return 0;
   }
 
   public async getNodes(_parent?: TreeNodeItem) {
     const data = CivilDataModel.get();
-    /*
-    let components: CivilComponentProps[];
-
-    if (parent === undefined) {
-      components = data.getAllTopNodes();
-    } else {
-      components = data.getChildren(parent as CivilComponentProps);
-    }
-    */
-    const components = data.getAllComponents();
+    const components = data.getAllSensors();
 
     const nodes = [];
     for (const component of components) {
-      const hasChildren = false; // 0 < data.getChildCount(component);
-      nodes.push(createTreeNode(component, hasChildren));
+      nodes.push(createTreeNode(component, false));
     }
 
     return nodes;
   }
 }
 
-class ModelBreakdownSelectionHandler extends TreeEventHandler {
+class SensorSelectionHandler extends TreeEventHandler {
   private _onNodeSelected: (component: CivilComponentProps) => void;
 
   constructor(nodeLoader: AbstractTreeNodeLoaderWithProvider<TreeDataProvider>, onNodeSelected: any) {
@@ -118,19 +101,19 @@ class ModelBreakdownSelectionHandler extends TreeEventHandler {
   }
 }
 
-class ModelBreakdownTreeImageLoader implements ITreeImageLoader {
+class SensorTreeImageLoader implements ITreeImageLoader {
   public load(item: TreeNodeItem | BeInspireTreeNodeITree): LoadedImage | undefined {
     // setup path to the folder containing tree icons (it should be somewhere in ‘./lib/webresources’)
     const pathToIcons = "";
     return item.icon ? { sourceType: "url", value: `${pathToIcons}${item.icon}` } : undefined;
   }
 }
-const modelBreakdownTreeImageLoader = new ModelBreakdownTreeImageLoader();
+const sensorTreeImageLoader = new SensorTreeImageLoader();
 
-function modelBreakdownTreeNodeRenderer(props: TreeNodeRendererProps) {
-  return <TreeNodeRenderer {...props} imageLoader={modelBreakdownTreeImageLoader} />;
+function sensorTreeNodeRenderer(props: TreeNodeRendererProps) {
+  return <TreeNodeRenderer {...props} imageLoader={sensorTreeImageLoader} />;
 }
 
-function modelBreakdownTreeRenderer(props: TreeRendererProps) {
-  return <TreeRenderer {...props} nodeRenderer={modelBreakdownTreeNodeRenderer} />;
+function sensorTreeRenderer(props: TreeRendererProps) {
+  return <TreeRenderer {...props} nodeRenderer={sensorTreeNodeRenderer} />;
 }

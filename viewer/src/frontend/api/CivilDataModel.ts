@@ -3,7 +3,7 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import { IModelConnection } from "@bentley/imodeljs-frontend";
-import { DataLink, ClassMapQueryRow, CompositionItemQueryRow } from "./DataLink";
+import { DataLink, ClassMapQueryRow, CompositionItemQueryRow, SensorQueryRow } from "./DataLink";
 
 export enum CivilDataModelLevel {
   TopNode, Corridor, Subcorridor, Asset,
@@ -17,7 +17,6 @@ export interface CivilComponentProps {
   id: string;                           // Id of this component
   label: string;                        // UI label for this component
   composingId: string;                  // Id of the 'parent' component for the UI tree
-  level: CivilDataModelLevel;           // tree level
   type: CivilDataComponentType;         // for icons, etc.
   geometricId?: string;                 // element with geometry for this component
 }
@@ -30,6 +29,7 @@ export class CivilDataModel {
 
   private _roadNetworks: CivilComponentProps[];
   private _allComponents: CivilComponentProps[];
+  private _allSensors: CivilComponentProps[];
 
   private static _singleton: CivilDataModel;
 
@@ -52,13 +52,13 @@ export class CivilDataModel {
     this._roadNetworks = [];
 
     this._allComponents = [];
+    this._allSensors = [];
   }
 
   private async populateTopNodes(_dataLink: DataLink) {
-    const level = CivilDataModelLevel.TopNode;
-    this._topNodes.push({ id: "0x0001", label: "Interstates", composingId: "", level, type: CivilDataComponentType.Interstate });
-    this._topNodes.push({ id: "0x0002", label: "State Highways", composingId: "", level, type: CivilDataComponentType.Highway });
-    this._topNodes.push({ id: "0x0003", label: "Local Roadways", composingId: "", level, type: CivilDataComponentType.LocalRoad });
+    this._topNodes.push({ id: "0x0001", label: "Interstates", composingId: "", type: CivilDataComponentType.Interstate });
+    this._topNodes.push({ id: "0x0002", label: "State Highways", composingId: "", type: CivilDataComponentType.Highway });
+    this._topNodes.push({ id: "0x0003", label: "Local Roadways", composingId: "", type: CivilDataComponentType.LocalRoad });
   }
 
   private getClassNameFromId(classMap: ClassMapQueryRow[], classId: string) {
@@ -90,6 +90,22 @@ export class CivilDataModel {
     return CivilDataComponentType.Interstate;
   }
 
+  private getSensorTypeForQueryRow(row: SensorQueryRow): CivilDataComponentType {
+    switch (row.typeCode) {
+      default:
+      case "Tunnel Air Sensor":
+      case "Baseline Air Sensor":
+        return CivilDataComponentType.AirQualitySensor;
+      case "Interior Thermometer":
+      case "Exterior Thermometer":
+        return CivilDataComponentType.TemperatureSensor;
+      case "Bridge Sensor":
+        return CivilDataComponentType.VibrationSensor;
+      case "Vehicle Counter":
+        return CivilDataComponentType.TrafficSensor;
+    }
+  }
+
   // NEEDSWORK or remove
   private getListForClassName(className: string) {
     switch (className) {
@@ -99,19 +115,29 @@ export class CivilDataModel {
     return undefined;
   }
 
-  private async populateCompositionItems(dataLink: DataLink, classes: ClassMapQueryRow[]) {
+  private async populateCompositionItems(dataLink: DataLink) {
+    const classes = await dataLink.queryRoadNetworkCompositionClasses();
+
     const rows = await dataLink.queryAllCompositionItems();
     rows.forEach((row) => {
       const type = this.getComponentTypeForQueryRow(row, classes);
-      this._allComponents.push({ type, id: row.instanceId, label: row.code, composingId: row.parentId, level: CivilDataModelLevel.TopNode, geometricId: row.geometricId });
+      this._allComponents.push({ type, id: row.instanceId, label: row.code, composingId: row.parentId, geometricId: row.geometricId });
+    });
+  }
+
+  private async populateSensors(dataLink: DataLink) {
+    const rows = await dataLink.queryAllSensors();
+    rows.forEach((row) => {
+      const type = this.getSensorTypeForQueryRow(row);
+      this._allSensors.push({ type, id: row.id, label: row.code, composingId: "" });
     });
   }
 
   public async load(imodel: IModelConnection) {
     const dataLink = new DataLink(imodel);
-    const classes = await dataLink.queryRoadNetworkCompositionClasses();
 
-    this.populateCompositionItems(dataLink, classes);
+    this.populateCompositionItems(dataLink);
+    this.populateSensors(dataLink);
   }
 
   private getComponentsForIds(list: CivilComponentProps[], ids: string[]): CivilComponentProps[] {
@@ -160,6 +186,7 @@ export class CivilDataModel {
     return "";
   }
 
+  /*
   public getChildren(component: CivilComponentProps) {
     const childLevel = this.getChildLevel(component.level);
 
@@ -177,9 +204,13 @@ export class CivilDataModel {
   public getChildCount(component: CivilComponentProps) {
     return this.getChildren(component).length;
   }
-
+*/
   public getAllComponents(): CivilComponentProps[] {
     return this._allComponents;
+  }
+
+  public getAllSensors(): CivilComponentProps[] {
+    return this._allSensors;
   }
 
   public getAllTopNodes(): CivilComponentProps[] {

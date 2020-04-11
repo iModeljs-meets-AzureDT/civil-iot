@@ -9,6 +9,7 @@ import { SidePanelContainer } from "../SidePanelContainer/SidePanelContainer";
 import { CivilMainMenu } from "./CivilMainMenu";
 import { CivilComponentProps } from "../../api/CivilDataModel";
 import { ModelBreakdownTree } from "./ModelBreakdownTree";
+import { SensorTree } from "./SensorTree";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -36,7 +37,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     };
   }
 
-  private _treeNodeSelected = async (component: CivilComponentProps): Promise<void> => {
+  private _componentSelected = async (component: CivilComponentProps): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 
     if (undefined === component.geometricId) {
@@ -45,7 +46,12 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     }
 
     await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
-    this.props.imodel.selectionSet.replace(component.id);
+    this.props.imodel.selectionSet.replace(component.geometricId);
+  }
+
+  private _sensorSelected = async (sensor: CivilComponentProps): Promise<void> => {
+    await IModelApp.viewManager.selectedView!.zoomToElements([sensor.id], { animateFrustumChange: true });
+    this.props.imodel.selectionSet.replace(sensor.id);
   }
 
   /** The sample's render method */
@@ -62,7 +68,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.ModelBreakdown: {
-        content = <ModelBreakdownTree onNodeSelected={this._treeNodeSelected} />;
+        content = <ModelBreakdownTree onNodeSelected={this._componentSelected} />;
         title = "Model breakdown";
         break;
       }
@@ -71,6 +77,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.Sensors: {
+        content = <SensorTree onNodeSelected={this._sensorSelected} />;
         title = "Sensors";
         break;
       }

@@ -19,6 +19,13 @@ export interface CompositionItemQueryRow {
   geometricCode: string;
 }
 
+export interface SensorQueryRow {
+  id: string;
+  code: string;
+  typeCode: string;
+  observedId: string;
+}
+
 export class DataLink {
 
   private _iModel: IModelConnection;
@@ -105,13 +112,24 @@ export class DataLink {
   }
 
   public async queryAllCompositionItems(): Promise<CompositionItemQueryRow[]> {
-    const query = `SELECT c.ECClassId classId, c.ECInstanceId instanceId, c.CodeValue code, c.Classification classification, c.parent.id parentId, g.ECInstanceId geometricId, g.CodeValue geometricCode
+    const query = `
+    SELECT c.ECClassId classId, c.ECInstanceId instanceId, c.CodeValue code, c.Classification classification, c.parent.id parentId, g.ECInstanceId geometricId, g.CodeValue geometricCode
     FROM RoadNetworkComposition.CompositionItem c
     LEFT JOIN BisCore.ElementGroupsMembers r ON c.ECInstanceId=r.SourceECInstanceId
     LEFT JOIN BisCore.GeometricElement3d g ON g.ECInstanceId=r.TargetECInstanceId`;
     const rows = await this.executeQuery(query);
 
     return rows as CompositionItemQueryRow[];
+  }
+
+  public async queryAllSensors(): Promise<SensorQueryRow[]> {
+    const query = `
+    SELECT s.EcInstanceId id, s.CodeValue code, t.ECInstanceId typeId, t.CodeValue typeCode, c.ECInstanceId observedId, c.CodeValue observedCode
+    FROM iot:Sensor s,iot:SensorType t,rnc:CompositionItem c,iot:SensorObservesElement o
+    WHERE s.typeDefinition.id=t.ECInstanceId AND s.ECInstanceId=o.SourceECInstanceId AND c.ECInstanceId=o.TargetECInstanceId`;
+    const rows = await this.executeQuery(query);
+
+    return rows as SensorQueryRow[];
   }
 
 }
