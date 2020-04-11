@@ -145,4 +145,8 @@ export class CivilDataModel {
   public getAllSensors(): CivilComponentProps[] {
     return this._allSensors;
   }
+
+  public getSensorsForTypes(types: CivilDataComponentType[]): CivilComponentProps[] {
+    return this._allSensors.filter((c: CivilComponentProps) => -1 !== types.indexOf(c.type));
+  }
 }

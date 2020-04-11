@@ -57,6 +57,16 @@ class SensorDataProvider implements ITreeDataProvider {
     const data = CivilDataModel.get();
     const components = data.getAllSensors();
 
+    components.sort((a: CivilComponentProps, b: CivilComponentProps) => {
+      if (a.type === b.type)
+        if (a.label === b.label)
+          return 0;
+        else
+          return a.label < b.label ? -1 : 1;
+
+      return a.type < b.type ? -1 : 1;
+    });
+
     const nodes = [];
     for (const component of components) {
       nodes.push(createTreeNode(component, false));
