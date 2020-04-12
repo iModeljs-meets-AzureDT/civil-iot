@@ -15,6 +15,7 @@ export interface CivilComponentProps {
   composingId: string;                  // Id of the 'parent' component for the UI tree
   type: CivilDataComponentType;         // for icons, etc.
   geometricId?: string;                 // element with geometry for this component
+  position?: any;                         // element origin (marker position)
 }
 
 export class CivilDataModel {
@@ -23,10 +24,10 @@ export class CivilDataModel {
 
   private static _singleton: CivilDataModel;
 
-  public static initialize(imodel: IModelConnection) {
+  public static async initialize(imodel: IModelConnection) {
     if (undefined === CivilDataModel._singleton) {
       CivilDataModel._singleton = new CivilDataModel();
-      CivilDataModel._singleton.load(imodel);
+      await CivilDataModel._singleton.load(imodel);
     }
   }
 
@@ -99,15 +100,15 @@ export class CivilDataModel {
     const rows = await dataLink.queryAllSensors();
     rows.forEach((row) => {
       const type = this.getSensorTypeForQueryRow(row);
-      this._allSensors.push({ type, id: row.id, label: row.code, composingId: "" });
+      this._allSensors.push({ type, id: row.id, label: row.code, position: row.position, composingId: "" });
     });
   }
 
   public async load(imodel: IModelConnection) {
     const dataLink = new DataLink(imodel);
 
-    this.populateCompositionItems(dataLink);
-    this.populateSensors(dataLink);
+    await this.populateCompositionItems(dataLink);
+    await this.populateSensors(dataLink);
   }
 
   public static getIconForComponent(type: CivilDataComponentType) {

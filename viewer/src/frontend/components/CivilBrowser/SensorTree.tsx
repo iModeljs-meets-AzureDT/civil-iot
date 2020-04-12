@@ -20,7 +20,10 @@ export function SensorTree(props: SensorTreeProps) {
 class SensorDataProvider implements ITreeDataProvider {
 
   public async getNodesCount(_parent?: TreeNodeItem) {
-    return 0;
+    const data = CivilDataModel.get();
+    const components = data.getAllSensors();
+
+    return components.length;
   }
 
   public async getNodes(_parent?: TreeNodeItem) {

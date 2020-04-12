@@ -33,10 +33,10 @@ import { TreeWidget } from "../widgets/TreeWidget";
 import { PropertyGridWidget } from "../widgets/PropertyGridWidget";
 import { AppStatusBarWidget } from "../statusbars/AppStatusBar";
 import { AppUi } from "../AppUi";
-import { DataLink } from "../../api/DataLink";
 import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
+import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { CivilDataModel } from "../../api/CivilDataModel";
 
 /**
@@ -60,7 +60,13 @@ export class SampleFrontstage extends FrontstageProvider {
 
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
       // NEEDSWORK: find a better place to do this
-      CivilDataModel.initialize(vp.iModel);
+      await CivilDataModel.initialize(vp.iModel);
+
+      const data = CivilDataModel.get();
+      const components = data.getAllSensors();
+
+      // tslint:disable-next-line: no-floating-promises
+      SensorMarkerSetDecoration.show(components);
     });
 
     // Create the content layouts.
