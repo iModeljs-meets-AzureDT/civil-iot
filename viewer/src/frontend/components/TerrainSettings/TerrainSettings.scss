@@ -1,0 +1,10 @@
+.terrain-settings {
+  height: 100px;
+  width: 300px;
+  display: grid;
+  row-gap: 8px;
+  column-gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 10px;
+}
