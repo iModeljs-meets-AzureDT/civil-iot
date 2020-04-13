@@ -299,7 +299,7 @@ export class SensorImporter {
     const modelSelectorId = ModelSelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Models`, modelIds.concat([this._physicalModelId]));
     const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Categories`, categoryIds.concat([this._sensorCategoryId, "0x2000000017d"]));
     const displayStyle: DisplayStyle3d = DisplayStyle3d.create(this._iModelDb, this._definitionModelId, `${viewName} Display Style`);
-    displayStyle.settings.viewFlags.renderMode = RenderMode.SmoothShade;
+    displayStyle.settings.viewFlags.renderMode = RenderMode.SolidFill;
     displayStyle.insert();
     const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, viewName, modelSelectorId, categorySelectorId, displayStyle.id, viewExtents, StandardViewIndex.Iso);
     this._iModelDb.views.setDefaultViewId(viewId);

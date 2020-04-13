@@ -556,16 +556,144 @@
       ]
     },
     {
+      "type": "Tunnel Air Sensor",
+      "name": "T3-SB-INT-AIR-1",
+      "observes": "T3-SB",
+      "origin": [
+        510659.75122458814,
+        6651127.386025911,
+        75.93932933768869
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T3-SB-INT-AIR-2",
+      "observes": "T3-SB",
+      "origin": [
+        510880.7801038306,
+        6651142.449488887,
+        73.92999129471056
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T3-SB-INT-TEMP-1",
+      "observes": "T3-SB",
+      "origin": [
+        510789.33105258504,
+        6651132.825692464,
+        75.32106958442856
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T3-SB-INT-TEMP-2",
+      "observes": "T3-SB",
+      "origin": [
+        510969.4294911636,
+        6651156.997091809,
+        72.11666230525401
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T3-SB-EXT-AIR-1",
+      "observes": "T3-SB",
+      "origin": [
+        510539.69627680496,
+        6651130.905964862,
+        75.06725915899999
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T3-SB-EXT-TEMP-1",
+      "observes": "T3-SB",
+      "origin": [
+        511045.5674742721,
+        6651174.545904764,
+        70.14485954861038
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T3-NB-INT-AIR-1",
+      "observes": "T3-NB",
+      "origin": [
+        510686.38471101155,
+        6651107.368261327,
+        75.60617261203032
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T3-NB-INT-AIR-2",
+      "observes": "T3-NB",
+      "origin": [
+        510891.34187780274,
+        6651124.811707137,
+        74.2483432171815
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T3-NB-INT-TEMP-1",
+      "observes": "T3-NB",
+      "origin": [
+        510798.7680627563,
+        6651113.765938491,
+        75.25426903377384
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T3-NB-INT-TEMP-2",
+      "observes": "T3-NB",
+      "origin": [
+        510984.1280976681,
+        6651139.999359327,
+        72.18404353950729
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T3-NB-EXT-AIR-1",
+      "observes": "T3-NB",
+      "origin": [
+        511049.6211484542,
+        6651156.966209179,
+        70.45971804190367
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T3-NB-EXT-TEMP-1",
+      "observes": "T3-NB",
+      "origin": [
+        510538.578496407,
+        6651110.423873747,
+        74.65219033412009
+      ]
+    },
+    {
       "type": "Vehicle Counter",
       "name": "R1-SB-VC1",
       "observes": "R1-SB",
-      "origin": []
+      "origin": [
+        508146.0232721314,
+        6647832.409922096,
+        20.504481613756344
+      ]
     },
     {
       "type": "Vehicle Counter",
       "name": "R1-NB-VC1",
       "observes": "R1-NB",
-      "origin": []
+      "origin": [
+        508153.8069972439,
+        6647827.5699512735,
+        20.38977334897683
+      ]
     },
     {
       "type": "Bridge Sensor",
@@ -582,9 +710,9 @@
       "name": "BR1-NB-BS-1",
       "observes": "BR1-NB",
       "origin": [
-        507770.6363285955,
-        6646575.132611987,
-        4.725345574668767
+        507783.62519512454,
+        6646561.707107001,
+        14.622376745289774
       ]
     },
     {
