@@ -26,6 +26,7 @@ import {
   UiFramework,
   IModelConnectedViewSelector,
   IModelConnectedNavigationWidget,
+  ToolButton,
 } from "@bentley/ui-framework";
 
 import { TableContent } from "../contentviews/TableContent";
@@ -38,6 +39,7 @@ import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
 import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { CivilDataModel } from "../../api/CivilDataModel";
+import { TerrainSettings } from "../../components/TerrainSettings/TerrainSettings";
 
 /**
  * Sample Frontstage for Civil IoT Viewer application
@@ -124,7 +126,8 @@ export class SampleFrontstage extends FrontstageProvider {
             widgets={
               [
                 /** Use standard NavigationWidget delivered in ui-framework */
-                <Widget isFreeform={true} element={<IModelConnectedNavigationWidget suffixVerticalItems={new ItemList([this._viewSelectorItemDef])} />} />,
+                <Widget isFreeform={true} element={<IModelConnectedNavigationWidget suffixVerticalItems=
+                  {new ItemList([this._viewSelectorItemDef, this._terrainSettingsItemDef])} />} />,
               ]}
           />
         }
@@ -205,6 +208,16 @@ export class SampleFrontstage extends FrontstageProvider {
         <IModelConnectedViewSelector
           listenForShowUpdates={false}  // Demo for showing only the same type of view in ViewSelector - See IModelViewport.tsx, onActivated
         />
+      ),
+    });
+  }
+
+  /** Get the CustomItemDef for TerrainSettings  */
+  private get _terrainSettingsItemDef() {
+    return new CustomItemDef({
+      customId: "sampleApp:viewSelector",
+      reactElement: (
+        <TerrainSettings placeholder={true} />
       ),
     });
   }
