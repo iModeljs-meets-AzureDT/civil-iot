@@ -12,7 +12,6 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "buildIModelJsModule && ncp ./lib/webresources/index.html ./lib/webresources/signin-callback.html",
     "build": "buildIModelJsModule -p=true && ncp ./lib/webresources/index.html ./lib/webresources/signin-callback.html && npm run copy-locales",
     "copy-locales": "ncp ./lib/webresources/locales/en ./lib/webresources/locales/en-US",
     "start:webserver": "node ./node_modules/@bentley/imodeljs-webserver/lib/WebServer.js --port=3000 --resources=./lib/webresources/",
