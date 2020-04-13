@@ -320,9 +320,9 @@
       "name": "T1-SB-INT-AIR-1",
       "observes": "T1-SB",
       "origin": [
-        508151.30324717535,
-        6648518.212526046,
-        0
+        508120.6392024359,
+        6648748.730933646,
+        44.58541599542626
       ]
     },
     {
@@ -330,9 +330,9 @@
       "name": "T1-SB-INT-AIR-2",
       "observes": "T1-SB",
       "origin": [
-        508016.8180064463,
-        6648752.724907168,
-        0
+        508218.31797594705,
+        6648535.9349136595,
+        44.43092619900345
       ]
     },
     {
@@ -340,9 +340,9 @@
       "name": "T1-SB-INT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
-        508191.6575996152,
-        6648401.470208805,
-        0
+        508043.3405958119,
+        6648862.369562558,
+        42.17837451461879
       ]
     },
     {
@@ -350,9 +350,9 @@
       "name": "T1-SB-INT-TEMP-2",
       "observes": "T1-SB",
       "origin": [
-        508092.16457750474,
-        6648640.7160046585,
-        0
+        508182.1251398821,
+        6648633.69230669,
+        45.13209996701791
       ]
     },
     {
@@ -360,9 +360,9 @@
       "name": "T1-SB-EXT-AIR-1",
       "observes": "T1-SB",
       "origin": [
-        508028.46546237683,
-        6648836.195318681,
-        0
+        508006.81790820655,
+        6648910.044670299,
+        41.01749672806076
       ]
     },
     {
@@ -370,9 +370,9 @@
       "name": "T1-SB-EXT-TEMP-1",
       "observes": "T1-SB",
       "origin": [
-        508190.01333795814,
-        6648496.1718400335,
-        0
+        508241.16851916,
+        6648432.137739072,
+        42.064130055119556
       ]
     },
     {
@@ -380,9 +380,9 @@
       "name": "T1-NB-INT-AIR-1",
       "observes": "T1-NB",
       "origin": [
-        508163.7755642636,
-        6648540.116685854,
-        0
+        508096.43868174835,
+        6648821.419194097,
+        43.391192137994
       ]
     },
     {
@@ -390,9 +390,9 @@
       "name": "T1-NB-INT-AIR-2",
       "observes": "T1-NB",
       "origin": [
-        508049.85116842703,
-        6648740.128557215,
-        0
+        508215.229168874,
+        6648608.832031863,
+        45.00220244596875
       ]
     },
     {
@@ -400,9 +400,9 @@
       "name": "T1-NB-INT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
-        508202.1657568233,
-        6648437.525925763,
-        0
+        508161.70275582414,
+        6648721.160391993,
+        44.85189025220642
       ]
     },
     {
@@ -410,9 +410,9 @@
       "name": "T1-NB-INT-TEMP-2",
       "observes": "T1-NB",
       "origin": [
-        508111.1571038112,
-        6648649.30775404,
-        0
+        508250.5509827086,
+        6648497.870540805,
+        43.86491153887098
       ]
     },
     {
@@ -420,9 +420,9 @@
       "name": "T1-NB-EXT-AIR-1",
       "observes": "T1-NB",
       "origin": [
-        508212.9325972333,
-        6648500.498399163,
-        0
+        508261.8658879351,
+        6648435.698795592,
+        42.72983735450968
       ]
     },
     {
@@ -430,39 +430,151 @@
       "name": "T1-NB-EXT-TEMP-1",
       "observes": "T1-NB",
       "origin": [
-        508046.1691299928,
-        6648848.337109152,
-        0
+        508024.029354798,
+        6648922.079292772,
+        40.8054006978257
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T2-SB-INT-AIR-1",
+      "observes": "T2-SB",
+      "origin": [
+        508742.15098456945,
+        6651171.686416695,
+        97.58589814848929
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T2-SB-INT-AIR-2",
+      "observes": "T2-SB",
+      "origin": [
+        508888.3409962075,
+        6651215.381742975,
+        98.41014767111946
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T2-SB-INT-TEMP-1",
+      "observes": "T2-SB",
+      "origin": [
+        508807.18667373125,
+        6651192.650732512,
+        98.17784120762215
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T2-SB-INT-TEMP-2",
+      "observes": "T2-SB",
+      "origin": [
+        508953.14421395847,
+        6651230.890819745,
+        98.20578831564745
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T2-SB-EXT-AIR-1",
+      "observes": "T2-SB",
+      "origin": [
+        508701.7915299628,
+        6651152.9178891,
+        97.74591284340454
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T2-SB-EXT-TEMP-1",
+      "observes": "T2-SB",
+      "origin": [
+        509030.1395080363,
+        6651242.062377367,
+        98.23683796835188
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T2-NB-INT-AIR-1",
+      "observes": "T2-NB",
+      "origin": [
+        508757.5568140733,
+        6651144.341973173,
+        91.33631063381246
+      ]
+    },
+    {
+      "type": "Tunnel Air Sensor",
+      "name": "T2-NB-INT-AIR-2",
+      "observes": "T2-NB",
+      "origin": [
+        508905.6055445765,
+        6651187.9517739415,
+        92.23936742312056
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T2-NB-INT-TEMP-1",
+      "observes": "T2-NB",
+      "origin": [
+        508818.2664729991,
+        6651163.775886208,
+        91.93688853122485
+      ]
+    },
+    {
+      "type": "Interior Thermometer",
+      "name": "T2-NB-INT-TEMP-2",
+      "observes": "T2-NB",
+      "origin": [
+        508969.58715774503,
+        6651202.926746686,
+        92.0551801028848
+      ]
+    },
+    {
+      "type": "Baseline Air Sensor",
+      "name": "T2-NB-EXT-AIR-1",
+      "observes": "T2-NB",
+      "origin": [
+        509034.2552859408,
+        6651219.276175458,
+        98.23189338898304
+      ]
+    },
+    {
+      "type": "Exterior Thermometer",
+      "name": "T2-NB-EXT-TEMP-1",
+      "observes": "T2-NB",
+      "origin": [
+        508710.0813843083,
+        6651129.997261671,
+        96.74128205228907
       ]
     },
     {
       "type": "Vehicle Counter",
       "name": "R1-SB-VC1",
       "observes": "R1-SB",
-      "origin": [
-        508102.2756692797,
-        6647716.126457273,
-        18.16489748164695
-      ]
+      "origin": []
     },
     {
       "type": "Vehicle Counter",
       "name": "R1-NB-VC1",
       "observes": "R1-NB",
-      "origin": [
-        508105.6142218534,
-        6647697.991151022,
-        17.92284343151005
-      ]
+      "origin": []
     },
     {
       "type": "Bridge Sensor",
       "name": "BR1-SB-BS-1",
       "observes": "BR1-SB",
       "origin": [
-        508169.777,
-        6648025.777,
-        31.777
+        507775.6496651939,
+        6646561.718744544,
+        15.215256509632205
       ]
     },
     {
@@ -470,9 +582,178 @@
       "name": "BR1-NB-BS-1",
       "observes": "BR1-NB",
       "origin": [
-        508169.777,
-        6648025.777,
-        31.777
+        507770.6363285955,
+        6646575.132611987,
+        4.725345574668767
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR2-SB-BS-1",
+      "observes": "BR2-SB",
+      "origin": [
+        507853.8626422776,
+        6647063.65766483,
+        19.22290036370833
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR2-NB-BS-1",
+      "observes": "BR2-NB",
+      "origin": [
+        507862.61903834634,
+        6647063.022112997,
+        19.204793263307128
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR3-SB-BS-1",
+      "observes": "BR3-SB",
+      "origin": [
+        508018.4055923792,
+        6647494.635738898,
+        17.325580068104244
+      ]
+    },
+    {
+      "type": "Bridge Sensor",
+      "name": "BR3-NB-BS-1",
+      "observes": "BR3-NB",
+      "origin": [
+        508026.33775546425,
+        6647491.854691938,
+        16.898329950015242
+      ]
+    }
+  ],
+  "views": [
+    {
+      "name": "Operations",
+      "categories": [
+        "D-BARR-W Beam G4 Thrie Beam (LHS)",
+        "E-TERR-Boundary",
+        "D-COMP-EWKS-Topsoil",
+        "D-BARR-3D-W Beam (LHS)",
+        "D-BARR-SW Rope",
+        "D-COMP-EWKS-Topsoil Fill",
+        "D-TERR-Top Mesh",
+        "D-BARR-3D-SW Rope",
+        "D-COMP-EWKS-Turf",
+        "D-BARR-W Beam G4 Thrie Beam (RHS)",
+        "D-BARR-3D-W Beam (RHS)",
+        "D-CORR-10m Interval",
+        "D-CORR-Template Range",
+        "D-MISC-DNC",
+        "D-KERB-Top",
+        "D-EWKS-Hinge",
+        "D-EWKS-Front of Footpath",
+        "D-EWKS-Back of Footpath",
+        "D-KERB-Hinge",
+        "D-COMP-PAVE-Conc1",
+        "D-COMP-MATR-Grass",
+        "D-COMP-PAVE-PV1",
+        "D-COMP-PAVE-PV2",
+        "D-COMP-PAVE-PV3",
+        "D-COMP-KERB-1",
+        "D-CTRL-Surface Template Boundary",
+        "D-LNMK-Edge Line E1 (General)",
+        "D-TERR-Triangle",
+        "D-COMP-PAVE-SMZ,",
+        "D-CORR-End Condition Exception",
+        "D-TERR-Contours Minor",
+        "D-TERR-Contours Major",
+        "D-TERR-Spot Height",
+        "D-TERR-Flow Arrows",
+        "D-TERR-Breakline",
+        "D-TERR-Hole",
+        "D-TERR-Island",
+        "D-TERR-Contours Imported",
+        "D-TERR-Void",
+        "D-CORR-5m Interval",
+        "D-GEOM-Straight",
+        "D-GEOM-Centreline",
+        "D-CTRL-Control Lines",
+        "D-CORR-Key Station",
+        "D-COMP-EWKS-Cut",
+        "D-COMP-EWKS-Topsoil Cut",
+        "D-COMP-EWKS-Fill",
+        "D-CTRL-Control DNC",
+        "TC_Concrete Pavement",
+        "Matchline",
+        "D-CORR-Point Control",
+        "D-CWAY-Median Edge",
+        "D-GEOM-Arc",
+        "D-LNMK-Lane Line - Continuous (150mm)",
+        "D-LNMK-Dividing - Separation Line S2 (Multi Lane)",
+        "D-COMP-PAVE-SMA14",
+        "Construction Element Only - Clipping Bridges",
+        "E-TERR-Triangle",
+        "E-TERR-Contours Minor",
+        "E-TERR-Contours Major",
+        "E-TERR-Island",
+        "E-TERR-Flow Arrows",
+        "E-TERR-Spot",
+        "E-TERR-Breakline",
+        "E-TERR-Hole",
+        "E-TERR-Contours Imported",
+        "E-TERR-Void",
+        "D-SUBG-Pave4",
+        "D-SUBG-Pave8",
+        "D-COMP-PAVE-DGA Base",
+        "D-COMP-PAVE-LCS",
+        "D-CTRL-Tie Both",
+        "D-CTRL-Tie Horizontal",
+        "D-LSEC-Profile Intersecting",
+        "D-WALL-Top",
+        "D-BARR-Hinge",
+        "D-CWAY-Interface-Joint",
+        "D-COMP-WALL-Concrete1",
+        "D-COMP-PAVE-CRCP",
+        "D-COMP-MATR-Dirt",
+        "D-COMP-WALL-Other",
+        "D-COMP-WALL-Concrete2",
+        "D-DRAI-Trace",
+        "D-DRAI-Pond",
+        "D-DRAI-Low Point",
+        "D-EWKS-Front of Bench",
+        "D-BARR-Back",
+        "D-BARR-3D-Bollard",
+        "D-BARR-TL4 Conc Median Barrier",
+        "D-CORR-Template Transition",
+        "TC_Structural Concrete",
+        "z - Construction",
+        "D-CTRL-Point Control Both",
+        "D-CTRL-Point Control Horizontal",
+        "OBM_Deck",
+        "OBM_Haunch",
+        "OBM_GirderConcrete",
+        "OBM_Barriers",
+        "OBM_Caps",
+        "OBM_Footings",
+        "OBM_Wingwalls",
+        "OBM_Columns",
+        "OBM_Piles_concrete"
+      ],
+      "subject": "Ref, Coff Harbor Master.dgn, Default-3D",
+      "models": [
+        "0x200000001e9",
+        "0x200000001eb",
+        "0x200000001ed",
+        "0x200000001ef",
+        "0x200000001f1",
+        "0x200000001f3",
+        "0x200000001f5",
+        "0x200000001f7",
+        "0x200000001f9",
+        "0x200000001fb",
+        "0x200000001fd",
+        "0x200000001ff",
+        "0x20000000201",
+        "0x20000000203",
+        "0x20000000205",
+        "0x20000000207"
       ]
     }
   ]

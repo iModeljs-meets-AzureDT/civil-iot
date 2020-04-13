@@ -55,7 +55,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);
-      await IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
+      IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
     }
     this.props.imodel.selectionSet.replace(sensor.id);
   }

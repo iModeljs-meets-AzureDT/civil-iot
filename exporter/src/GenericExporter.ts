@@ -48,9 +48,10 @@ export class GenericExporter {
     this.exportInstancesOf("RoadNetworkComposition:Roadway"); // All Roadways
     this.exportInstancesOf("RoadNetworkComposition:Ramp"); // All Ramps
     this.exportInstancesOf("RoadNetworkComposition:TravelwaySegment"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
-    this.exportInstancesOf("RoadNetworkComposition:Tunnel"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
-    this.exportInstancesOf("RoadNetworkComposition:Bridge"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
-    this.exportInstancesOf("RoadNetworkComposition:RoadSegment"); // All TravelwaySegments (Tunnels, Bridges, RoadSegments)
+    this.exportInstancesOf("RoadNetworkComposition:Tunnel");
+    this.exportInstancesOf("RoadNetworkComposition:Bridge");
+    this.exportInstancesOf("RoadNetworkComposition:RoadSegment");
+    this.exportInstancesOf("Generic:GraphicalModel3d");
     this.exportGrouped();
     this.exportCategories();
     this.exportCompositionHierarchy();
@@ -149,7 +150,7 @@ export class GenericExporter {
     const element = this.iModelDb.elements.getElement(elementId);
     if (element.parent?.id) {
       if (element.parent.id !== IModel.rootSubjectId) {
-        return this.buildModelPath(element.parent.id) + "/" + element.code.getValue();
+        return this.buildModelPath(element.parent.id) + `/[${element.code.getValue()}]`;
       }
     }
     return "";
@@ -161,16 +162,16 @@ export class GenericExporter {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
         const modelId: Id64String = statement.getValue(0).getId();
         const model: Model = this.iModelDb.models.getModel(modelId);
-        FileSystemUtils.writeLine(outputFileName, `${model.id}, ${model.classFullName}, ${this.buildModelPath(model.id)}`);
+        FileSystemUtils.writeLine(outputFileName, `${model.id}, isPrivate=${model.isPrivate}, ${model.classFullName}, ${this.buildModelPath(model.id)}`);
       }
     });
   }
 
   public exportHierarchy(): void {
     const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, "complete-hierarchy.csv");
-    // const elementExporter = new IModelToTextFileExporter(this.iModelDb, outputFileName);
-    const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
-    elementExporter.exportElement(IModel.rootSubjectId);
+    const elementExporter = new IModelToTextFileExporter(this.iModelDb, outputFileName);
+    // const elementExporter = new ElementExporter(this.iModelDb, outputFileName);
+    elementExporter.exporter.exportModelContents(IModel.rootSubjectId);
   }
 
   private findClassIdsWithProperty(propertyName: string): Id64String[] {

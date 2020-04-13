@@ -1,5 +1,5 @@
 import { DbResult, GuidString, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { ECSqlStatement, Element, IModelDb, IModelJsFs, PhysicalObject } from "@bentley/imodeljs-backend";
+import { ECSqlStatement, Element, IModelDb, IModelJsFs } from "@bentley/imodeljs-backend";
 import { ElementProps, GeometricElement3dProps, IModelError, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import { FileSystemUtils } from "./FileSystemUtils";
 import { ObservationTypeProps } from "./IoTDevices";
@@ -39,18 +39,11 @@ interface AdtTypeProps {
 /** The base properties required by all AdtInstances. */
 interface AdtInstanceProps {
   $dtId: string; // Element.CodeValue
-  name: string; // Element.UserLabel or Element.CodeValue
   $metadata: { $model: string };
 }
 
-/** The properties in common with all AdtPhysicalObjects */
-interface AdtPhysicalObjectProps extends AdtInstanceProps {
-  instanceId: Id64String; // Element.ECInstanceId
-  federationGuid?: GuidString; // Element.FederationGuid
-}
-
 /** An AdtSensorInstance is a physical devices that records observations relative to a physical asset. */
-interface AdtSensorInstanceProps extends AdtPhysicalObjectProps {
+interface AdtSensorInstanceProps extends AdtInstanceProps {
   type: string; // SensorType.CodeValue
   deviceId: string; // Must match IoT Hub
   observes: string; // urn for target of SensorObservesElement
@@ -63,7 +56,7 @@ interface AdtSensorInstanceProps extends AdtPhysicalObjectProps {
 }
 
 /** An AdtPhysicalAsset is an AdtPhysicalObject worth tracking and observing with sensors. */
-interface AdtPhysicalAssetProps extends AdtPhysicalObjectProps {
+interface AdtPhysicalAssetProps extends AdtInstanceProps {
   classification: string;
   computedHealth: number;
 }
@@ -92,17 +85,11 @@ export class AdtExporter {
   }
 
   public exportAdtTypes(): void {
-    const physicalObjectClassName: string = PhysicalObject.className;
-    const physicalObjectClass: AdtTypeProps = this.createAdtType(physicalObjectClassName, [
-      // The $dtId of the ADT instance will be the Element.CodeValue
-      { "@type": "Property", "schema": "string", "name": "name" }, // Element.getDisplayLabel
-      { "@type": "Property", "schema": "string", "name": "instanceId" }, // Element.ECInstanceId
-      { "@type": "Property", "schema": "string", "name": "federationGuid" }, // Element.FederationGuid
-    ]);
     const sensorClass: AdtTypeProps = this.createAdtType("Sensor", [
       { "@type": "Property", "schema": "string", "name": "type" }, // SensorType.CodeValue
       { "@type": "Property", "schema": "string", "name": "deviceId" }, // deviceId in IoT Hub
-      { "@type": "Relationship", "target": this.buildAdtTypeUrn(physicalObjectClassName), "name": "observes" }, // SensorObservesElement
+      /* { "@type": "Relationship", "target": this.buildAdtTypeUrn(physicalObjectClassName), "name": "observes" }, // SensorObservesElement - should be an ADT Relationship */
+      { "@type": "Property", "schema": "string", "name": "observes" }, // SensorObservesElement - should be an ADT Relationship
       // WIP: should be an array of ObservationTypes!
       { "@type": "Property", "schema": "string", "name": "observationLabel1" }, // First SensorTypeHasObservationTypes.CodeValue
       { "@type": "Property", "schema": "string", "name": "observationUnit1" }, // First SensorTypeHasObservationTypes.Unit
@@ -110,40 +97,56 @@ export class AdtExporter {
       { "@type": "Property", "schema": "string", "name": "observationLabel2" }, // Second SensorTypeHasObservationTypes.CodeValue
       { "@type": "Property", "schema": "string", "name": "observationUnit2" }, // Second SensorTypeHasObservationTypes.Unit
       { "@type": "Telemetry", "schema": "double", "name": "observationValue2" }, // From IoT Hub
-    ], physicalObjectClassName);
-    const compositionClasses: AdtTypeProps[] = this.createCompositionTypes(physicalObjectClassName);
-    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", [physicalObjectClass, sensorClass].concat(compositionClasses));
+    ]);
+    const physicalAssetClasses: AdtTypeProps[] = this.createPhysicalAssetTypes();
+    FileSystemUtils.writeJsonFile(this.outputDir, "adt-types.json", [sensorClass].concat(physicalAssetClasses));
   }
 
-  private createCompositionTypes(baseClassName: string): AdtTypeProps[] {
+  private createAdtType(className: string, memberDefs: AdtMemberDefProps[]): AdtTypeProps {
+    return {
+      "@id": this.buildAdtTypeUrn(className),
+      "@type": "Interface",
+      "@context": "http://azure.com/v3/contexts/Model.json",
+      "displayName": className,
+      "contents": memberDefs,
+    };
+  }
+
+  private buildAdtTypeUrn(className: string): string {
+    const versionNumber = 1;
+    const iModelId: string = "chb"; // hyphens seem to cause problems, so don't use a guid
+    return `urn:adt:${iModelId}:${className}:${versionNumber}`;
+  }
+
+  private createPhysicalAssetTypes(): AdtTypeProps[] {
     const sql = "SELECT DISTINCT ECClassId FROM RoadNetworkComposition:CompositionItem";
-    const compositionTypeNames: string[] = this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): string[] => {
-      const classNames: string[] = [];
+    const adtTypeNames: string[] = this.iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): string[] => {
+      const typeNames: string[] = [];
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        classNames.push(statement.getValue(0).getClassNameForClassId().split(".")[1]);
+        typeNames.push(statement.getValue(0).getClassNameForClassId().split(".")[1]);
       }
-      return classNames;
+      return typeNames;
     });
-    return compositionTypeNames.map((compositionTypeName: string) => {
-      return this.createAdtType(compositionTypeName, [
+    return adtTypeNames.map((adtTypeName: string) => {
+      return this.createAdtType(adtTypeName, [
         { "@type": "Property", "schema": "string", "name": "classification" }, // CompositionItem.Classification
         { "@type": "Property", "schema": "double", "name": "computedHealth" }, // Computed by an Azure Function in ADT
-      ], baseClassName);
+      ]);
     });
   }
 
-  public exportAdtInstances(): void {
+  public exportAdtInstances(isAdd: boolean = true): void {
     // write adtInstances as JSON
     const adtInstances: AdtInstanceProps[] = this.createAdtInstances();
     FileSystemUtils.writeJsonFile(this.outputDir, "adt-instances.json", adtInstances);
     // write create scripts
     const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `create-adt-instances.txt`);
     adtInstances.forEach((adtInstance: AdtInstanceProps) => {
-      FileSystemUtils.writeLine(outputFileName, this.buildCreateAdtInstanceUrl(adtInstance));
+      FileSystemUtils.writeLine(outputFileName, this.buildUploadAdtInstanceUrl(adtInstance));
       FileSystemUtils.writeLine(outputFileName, JSON.stringify(this.buildMetaDataString(adtInstance)));
       const addScript = Object.entries(adtInstance).map((entry: [string, any]) => {
         return {
-          op: "add",
+          op: isAdd ? "add" : "replace",
           path: `/${entry[0]}`,
           value: entry[1],
         };
@@ -155,26 +158,18 @@ export class AdtExporter {
     });
   }
 
-  private buildCreateAdtInstanceUrl(adtInstance: AdtInstanceProps): string {
-    return `https://$adtApiHostName/digitaltwins/${adtInstance.$dtId}?api-version=$adtApiVersion`;
-  }
-
-  private buildMetaDataString(adtInstance: AdtInstanceProps): any {
-    return { $metadata: adtInstance.$metadata };
-  }
-
   public createAdtInstances(): AdtInstanceProps[] {
     const adtInstances: AdtInstanceProps[] = [];
     // PhysicalAsset instances
-    const observedSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesElement";
-    this.iModelDb.withPreparedStatement(observedSql, (statement: ECSqlStatement): void => {
+    const physicalAssetSql = "SELECT DISTINCT TargetECInstanceId FROM IoTDevices:SensorObservesElement";
+    this.iModelDb.withPreparedStatement(physicalAssetSql, (statement: ECSqlStatement): void => {
       while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const observedElementId: Id64String = statement.getValue(0).getId();
-        const observedElementProps: CompositionItemProps = this.iModelDb.elements.getElementProps(observedElementId);
-        const observedObject: AdtPhysicalAssetProps = this.createAdtPhysicalObject(observedElementProps) as AdtPhysicalAssetProps;
-        observedObject.classification = observedElementProps.classification;
-        observedObject.computedHealth = 0.0; // will be populated by the Azure Function on the ADT side
-        adtInstances.push(observedObject);
+        const elementId: Id64String = statement.getValue(0).getId();
+        const elementProps: CompositionItemProps = this.iModelDb.elements.getElementProps(elementId);
+        const physicalAssetInstance: AdtPhysicalAssetProps = this.createAdtInstance(elementProps) as AdtPhysicalAssetProps;
+        physicalAssetInstance.classification = elementProps.classification;
+        physicalAssetInstance.computedHealth = 0.0; // will be populated by the Azure Function on the ADT side
+        adtInstances.push(physicalAssetInstance);
       }
     });
     // Sensor instances
@@ -185,7 +180,7 @@ export class AdtExporter {
         const sensorTypeId: Id64String = statement.getValue(1).getId();
         const sensorTypeProps: TypeDefinitionElementProps = this.iModelDb.elements.getElementProps(sensorTypeId);
         const sensorProps: GeometricElement3dProps = this.iModelDb.elements.getElementProps(sensorId);
-        const sensorInstance: AdtSensorInstanceProps = this.createAdtPhysicalObject(sensorProps) as AdtSensorInstanceProps;
+        const sensorInstance: AdtSensorInstanceProps = this.createAdtInstance(sensorProps) as AdtSensorInstanceProps;
         sensorInstance.type = sensorTypeProps.code.value!;
         if (sensorTypeProps.federationGuid && sensorProps?.jsonProperties?.iot?.sensorTypeIndex) {
           sensorInstance.deviceId = `${this.getSimulationId()}.${sensorTypeProps.federationGuid}.${sensorProps.jsonProperties.iot.sensorTypeIndex}`;
@@ -212,31 +207,19 @@ export class AdtExporter {
     return adtInstances;
   }
 
-  private createAdtType(className: string, memberDefs: AdtMemberDefProps[], baseClassName?: string): AdtTypeProps {
-    return {
-      "@id": this.buildAdtTypeUrn(className),
-      "@type": "Interface",
-      "@context": "http://azure.com/v3/contexts/Model.json",
-      "displayName": className,
-      "contents": memberDefs,
-      "extends": baseClassName ? [this.buildAdtTypeUrn(baseClassName)] : undefined,
-    };
-  }
-
-  private createAdtPhysicalObject(elementProps: ElementProps): AdtPhysicalObjectProps {
+  private createAdtInstance(elementProps: ElementProps): AdtInstanceProps {
     return {
       $dtId: this.buildAdtInstanceUrn(elementProps),
-      name: elementProps.userLabel ? elementProps.userLabel : elementProps.code.value!,
-      instanceId: elementProps.id!,
-      federationGuid: elementProps.federationGuid,
       $metadata: { $model: this.buildAdtTypeUrn(elementProps.classFullName.split(":")[1]) },
     };
   }
 
-  private buildAdtTypeUrn(className: string): string {
-    const versionNumber = 3; // needs to be incremented each time the schema changes after it has been uploaded to ADT
-    const iModelId: string = "chb"; // hyphens seem to cause problems, so don't use a guid
-    return `urn:adt:${iModelId}:${className}:${versionNumber}`;
+  private buildUploadAdtInstanceUrl(adtInstance: AdtInstanceProps): string {
+    return `https://$adtApiHostName/digitaltwins/${adtInstance.$dtId}?api-version=$adtApiVersion`;
+  }
+
+  private buildMetaDataString(adtInstance: AdtInstanceProps): any {
+    return { $metadata: adtInstance.$metadata };
   }
 
   private buildAdtInstanceUrn(elementProps: ElementProps): string {
