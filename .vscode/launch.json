@@ -21,20 +21,9 @@
       "type": "node",
       "request": "launch",
       "name": "Web: Server (backend)",
-      "protocol": "inspector",
       "runtimeExecutable": "node",
-      "program": "${workspaceFolder}/viewer/node_modules/nodemon/bin/nodemon.js",
-      "cwd": "${workspaceFolder}/viewer",
-      "args": [
-        "--inspect=41016",
-        "--watch",
-        "${workspaceFolder}/viewer/lib/backend/main.js",
-        "${workspaceFolder}/viewer/lib/backend/main.js"
-      ],
-      "port": 41016,
-      "showAsyncStacks": true,
-      "smartStep": true,
-      "restart": true
+      "program": "${workspaceRoot}/viewer/lib/backend/main.js",
+      "cwd": "${workspaceRoot}/viewer",
     },
     {
       "name": "Web: Chrome (frontend)",
