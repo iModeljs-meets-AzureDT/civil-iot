@@ -571,37 +571,61 @@
       "type": "Bridge Sensor",
       "name": "BR1-SB-BS-1",
       "observes": "BR1-SB",
-      "origin": []
+      "origin": [
+        507775.6496651939,
+        6646561.718744544,
+        15.215256509632205
+      ]
     },
     {
       "type": "Bridge Sensor",
       "name": "BR1-NB-BS-1",
       "observes": "BR1-NB",
-      "origin": []
+      "origin": [
+        507770.6363285955,
+        6646575.132611987,
+        4.725345574668767
+      ]
     },
     {
       "type": "Bridge Sensor",
       "name": "BR2-SB-BS-1",
       "observes": "BR2-SB",
-      "origin": []
+      "origin": [
+        507853.8626422776,
+        6647063.65766483,
+        19.22290036370833
+      ]
     },
     {
       "type": "Bridge Sensor",
       "name": "BR2-NB-BS-1",
       "observes": "BR2-NB",
-      "origin": []
+      "origin": [
+        507862.61903834634,
+        6647063.022112997,
+        19.204793263307128
+      ]
     },
     {
       "type": "Bridge Sensor",
       "name": "BR3-SB-BS-1",
       "observes": "BR3-SB",
-      "origin": []
+      "origin": [
+        508018.4055923792,
+        6647494.635738898,
+        17.325580068104244
+      ]
     },
     {
       "type": "Bridge Sensor",
       "name": "BR3-NB-BS-1",
       "observes": "BR3-NB",
-      "origin": []
+      "origin": [
+        508026.33775546425,
+        6647491.854691938,
+        16.898329950015242
+      ]
     }
   ],
   "views": [
