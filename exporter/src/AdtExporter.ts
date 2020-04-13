@@ -146,7 +146,7 @@ export class AdtExporter {
       FileSystemUtils.writeLine(outputFileName, JSON.stringify(this.buildMetaDataString(adtInstance)));
       const addScript = Object.entries(adtInstance).map((entry: [string, any]) => {
         return {
-          op: isAdd ? "add" : "update",
+          op: isAdd ? "add" : "replace",
           path: `/${entry[0]}`,
           value: entry[1],
         };
