@@ -11,6 +11,7 @@ import { CivilComponentProps } from "../../api/CivilDataModel";
 import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
 import { AssetTree } from "./AssetTree";
+import { Range3d } from "@bentley/geometry-core";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -51,7 +52,11 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
   }
 
   private _sensorSelected = async (sensor: CivilComponentProps): Promise<void> => {
-    await IModelApp.viewManager.selectedView!.zoomToElements([sensor.id], { animateFrustumChange: true });
+    if (undefined !== sensor.position) {
+      const range = Range3d.create(sensor.position);
+      range.expandInPlace(20);
+      await IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
+    }
     this.props.imodel.selectionSet.replace(sensor.id);
   }
 
