@@ -13,6 +13,8 @@
   "private": true,
   "scripts": {
     "build": "buildIModelJsModule && ncp ./lib/webresources/index.html ./lib/webresources/signin-callback.html",
+    "build": "buildIModelJsModule -p=true && ncp ./lib/webresources/index.html ./lib/webresources/signin-callback.html && npm run copy-locales",
+    "copy-locales": "ncp ./lib/webresources/locales/en ./lib/webresources/locales/en-US",
     "start:webserver": "node ./node_modules/@bentley/imodeljs-webserver/lib/WebServer.js --port=3000 --resources=./lib/webresources/",
     "start:backend": "node lib/backend/main.js",
     "start:servers": "env-cmd ./lib/webresources/config.json run-p \"start:webserver\" \"start:backend\"",
