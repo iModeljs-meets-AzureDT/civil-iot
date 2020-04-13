@@ -7,10 +7,12 @@ async function main(process: NodeJS.Process): Promise<void> {
     IModelHost.startup();
 
     const outputDir = path.join(__dirname, "out");
-    if (IModelJsFs.existsSync(outputDir)) {
-      IModelJsFs.removeSync(outputDir);
+    // if (IModelJsFs.existsSync(outputDir)) {
+    //   IModelJsFs.removeSync(outputDir);
+    // }
+    if (!IModelJsFs.existsSync(outputDir)) {
+      IModelJsFs.mkdirSync(outputDir);
     }
-    IModelJsFs.mkdirSync(outputDir);
 
     let iModelDb: SnapshotDb;
     let inputDataFile: string;
