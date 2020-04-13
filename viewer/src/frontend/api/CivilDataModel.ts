@@ -4,6 +4,7 @@
 *--------------------------------------------------------------------------------------------*/
 import { IModelConnection } from "@bentley/imodeljs-frontend";
 import { DataLink, ClassMapQueryRow, CompositionItemQueryRow, SensorQueryRow } from "./DataLink";
+import { Point3d } from "@bentley/geometry-core";
 
 export enum CivilDataComponentType {
   Interstate, Highway, LocalRoad, Roadway, Bridge, Tunnel, RoadSegment, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor,
@@ -15,7 +16,7 @@ export interface CivilComponentProps {
   composingId: string;                  // Id of the 'parent' component for the UI tree
   type: CivilDataComponentType;         // for icons, etc.
   geometricId?: string;                 // element with geometry for this component
-  position?: any;                         // element origin (marker position)
+  position?: Point3d;                   // element origin (marker position)
 }
 
 export class CivilDataModel {
@@ -124,8 +125,8 @@ export class CivilDataModel {
       case CivilDataComponentType.GenericSensor: return "dashboard_2.svg";
       case CivilDataComponentType.AirQualitySensor: return "air-quality-sensor.png";
       case CivilDataComponentType.TemperatureSensor: return "temperature-sensor.png";
-      case CivilDataComponentType.VibrationSensor: return "activity.SVG";
-      case CivilDataComponentType.TrafficSensor: return "dashboard_2.svg";
+      case CivilDataComponentType.VibrationSensor: return "vibration-sensor.SVG";
+      case CivilDataComponentType.TrafficSensor: return "traffic-sensor.svg";
     }
 
     return "";

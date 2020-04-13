@@ -12,8 +12,8 @@ import {
   BeButton,
   imageElementFromUrl,
 } from "@bentley/imodeljs-frontend";
-import { ColorDef } from "@bentley/imodeljs-common";
-import { XYAndZ, XAndY } from "@bentley/geometry-core";
+import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
+
 import { CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 
 // const STATUS_TO_STRING = ["High", "Medium", "Normal"];
@@ -51,7 +51,7 @@ export class SensorMarker extends Marker {
     // let title = "";
     // title +=
     //   "<b>Id:</b> " +
-    //   component.elementId +
+    //   component.id +
     //   ", <b>Class:</b> " +
     //   component.className +
     //   "<br>";
@@ -71,6 +71,17 @@ export class SensorMarker extends Marker {
     this._component = component;
   }
 
+  /** Show the cluster as a white circle with an outline */
+  public drawFunc(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath();
+    ctx.strokeStyle = "#00B050";
+    ctx.fillStyle = "white";
+    ctx.lineWidth = 3;
+    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
   public onMouseButton(ev: BeButtonEvent): boolean {
     if (
       BeButton.Data !== ev.button ||
@@ -79,7 +90,7 @@ export class SensorMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
-    ev.viewport!.iModel.selectionSet.replace(this._component.elementId);
+    ev.viewport!.iModel.selectionSet.replace(this._component.id);
     return true; // Don't allow clicks to be sent to active tool...
   }
 }
@@ -146,14 +157,18 @@ class SensorClusterMarker extends Marker {
     )
       return true;
     const elementIds: any = [];
+    const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
-      elementIds.push(marker.component.elementId);
+      elementIds.push(marker.component.id);
+      positions.push(marker.component.position);
     });
     const vp = ev.viewport;
     if (0 < elementIds.length && vp) {
       vp.iModel.selectionSet.replace(elementIds);
-      // tslint:disable-next-line: no-floating-promises
-      vp.zoomToElements(elementIds, { animateFrustumChange: true });
+      const range = Range3d.createArray(positions);
+      range.expandInPlace(20);
+      vp.zoomToVolume(range, { animateFrustumChange: true });
+
       IModelApp.notifications.clearToolTip();
     }
     return true; // Don't allow clicks to be sent to active tool...
@@ -181,39 +196,6 @@ export class SensorMarkerSetDecoration {
     this.loadAll(sensors); // tslint:disable-line: no-floating-promises
   }
 
-  private recolorImage(img: any) {
-
-    const canvasOut = document.createElement("canvas");
-    const ctx = canvasOut.getContext("2d");
-    if (!ctx) return;
-    const w = img.width;
-    const h = img.height;
-
-    canvasOut.width = w;
-    canvasOut.height = h;
-
-    // Check if we need to change the color from black to white
-    const vp = IModelApp.viewManager.selectedView!;
-    if (ColorDef.black === vp.getContrastToBackgroundColor())
-      return;
-
-    // draw the image on the temporary canvas
-    ctx.drawImage(img, 0, 0, w, h);
-
-    // pull the entire image into an array of pixel data
-    const imageData = ctx.getImageData(0, 0, w, h);
-
-    // flip every pixel,
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      imageData.data[i] = 255 - imageData.data[i];
-      imageData.data[i + 1] = 255 - imageData.data[i + 1];
-      imageData.data[i + 2] = 255 - imageData.data[i + 2];
-      imageData.data[i + 3] = 255;
-    }
-    // put the altered data back on the canvas
-    ctx.putImageData(imageData, 0, 0);
-  }
-
   // load all images. After they're loaded, make the incident markers
   private async loadAll(sensors: any[]) {
     const typeIndex = [
@@ -228,11 +210,7 @@ export class SensorMarkerSetDecoration {
     });
     await (this._loading = Promise.all(loads)); // this is a member so we can tell if we're still loading
     for (const img of loads) {
-      const imageIn = await img;
-
-      const image = new Image();
-      image.onload = () => this.recolorImage(imageIn);
-      image.src = imageIn.src;
+      const image = await img;
       this._images.push(image);
     }
     this._loading = undefined;
@@ -243,7 +221,7 @@ export class SensorMarkerSetDecoration {
           component.position.y === 0 &&
           component.position.z === 0)) {
         // tslint:disable-next-line: no-console
-        console.log("Missing position for element id: " + component.elementId);
+        console.log("Missing position for element id: " + component.id);
       } else {
         let index = 0;
         typeIndex.forEach((type) => {
