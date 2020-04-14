@@ -15,6 +15,7 @@ export interface CivilComponentProps {
   label: string;                        // UI label for this component
   composingId: string;                  // Id of the 'parent' component for the UI tree
   type: CivilDataComponentType;         // for icons, etc.
+  typeCode?: string;                     // UI label for this component
   geometricId?: string;                 // element with geometry for this component
   position?: Point3d;                   // element origin (marker position)
 }
@@ -102,7 +103,7 @@ export class CivilDataModel {
     rows.forEach((row) => {
       const type = this.getSensorTypeForQueryRow(row);
       const composingId = (undefined !== row.observedId) ? row.observedId : "";
-      this._allSensors.push({ type, id: row.id, label: row.code, position: row.position, composingId });
+      this._allSensors.push({ type, typeCode: row.typeCode, id: row.id, label: row.code, position: row.position, composingId });
     });
   }
 
@@ -135,6 +136,11 @@ export class CivilDataModel {
 
   public getAllComponents(): CivilComponentProps[] {
     return this._allComponents;
+  }
+
+  public getComponentForId(componentId: string): CivilComponentProps | undefined {
+    const results: CivilComponentProps[] = this._allComponents.filter((c: CivilComponentProps) => c.id === componentId)
+    return results.length ? results[0] : undefined;
   }
 
   public getComponentsForParent(parentId: string): CivilComponentProps[] {

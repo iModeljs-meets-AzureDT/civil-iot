@@ -50,24 +50,19 @@ export class SensorMarker extends Marker {
     this._image = image;
     this.setImage(image);
 
-    // let title = "";
-    // title +=
-    //   "<b>Id:</b> " +
-    //   component.id +
-    //   ", <b>Class:</b> " +
-    //   component.className +
-    //   "<br>";
-    // const maxlen: number = 60;
-    // if (component.description.length > maxlen)
-    //   title +=
-    //     "<b>Desc:</b> " +
-    //     component.description.substring(0, maxlen) +
-    //     "...<br>";
-    // else title += "<b>Desc:</b> " + component.description + "<br>";
-    // title += "<b>Status: </b>" + STATUS_TO_STRING[component.status] + "<br>";
-    // const div = document.createElement("div");
-    // div.innerHTML = title;
-    // this.title = div;
+    const data = CivilDataModel.get();
+    const asset = data.getComponentForId(component.composingId);
+
+    let title = "";
+    title += "<b>Name:</b> " + component.label + "<br>";
+    title += "<b>Type:</b> " + component.typeCode! + "<br>";
+    title += "<b>Asset: </b>" + asset?.label + "<br>";
+    title += "<b>CO level: </b>" + "3.3 ppm" + "<br>";
+    title += "<b>NO2 level: </b>" + "33 ppb" + "<br>";
+
+    const div = document.createElement("div");
+    div.innerHTML = title;
+    this.title = div;
 
     this.setScaleFactor({ low: 0.2, high: 1.4 }); // make size 20% at back of frustum and 140% at front of frustum (if camera is on)
     this._component = component;
@@ -100,21 +95,21 @@ export class SensorMarker extends Marker {
 /** A Marker used to show a cluster of saved views. */
 class SensorClusterMarker extends Marker {
   private _cluster: Cluster<SensorMarker>;
-  private _maxStatus: number = 100;
+  // private _maxStatus: number = 100;
   // RGB values for:  red orange green light-green
-  private _colors: string[] = ["#C00000", "#ED7D31", "#92D050", "#00B050"];
+  // private _colors: string[] = ["#C00000", "#ED7D31", "#92D050", "#00B050"];
 
   /** Create a new cluster marker */
   constructor(location: XYAndZ, size: XAndY, cluster: Cluster<SensorMarker>) {
     super(location, size);
 
     this._cluster = cluster;
-    this._cluster.markers.forEach((marker) => {
-      if (marker.status < this._maxStatus) this._maxStatus = marker.status;
-    });
-    this.label = cluster.markers.length.toLocaleString();
-    this.labelColor = this._colors[this._maxStatus];
-    this.labelFont = "bold 16px san-serif";
+    // this._cluster.markers.forEach((marker) => {
+    //   if (marker.status < this._maxStatus) this._maxStatus = marker.status;
+    // });
+    // this.label = cluster.markers.length.toLocaleString();
+    // this.labelColor = this._colors[this._maxStatus];
+    // this.labelFont = "bold 16px san-serif";
     // let title = "";
     // const statusCounts: number[] = new Array<number>();
     // for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
@@ -134,9 +129,9 @@ class SensorClusterMarker extends Marker {
     // }
     // title += "</table>";
 
-    const div = document.createElement("div");
+    // const div = document.createElement("div");
     // div.innerHTML = title;
-    this.title = div;
+    // this.title = div;
   }
 
   /** Show the cluster as a white circle with an outline */
