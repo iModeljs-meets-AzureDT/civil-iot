@@ -137,6 +137,10 @@ export class CivilDataModel {
     return this._allComponents;
   }
 
+  public getComponentsByIds(ids: string[]): CivilComponentProps[] {
+    return this._allComponents.filter((c: CivilComponentProps) => -1 !== ids.indexOf(c.id));
+  }
+
   public getComponentsForParent(parentId: string): CivilComponentProps[] {
     return this._allComponents.filter((c: CivilComponentProps) => c.composingId === parentId);
   }

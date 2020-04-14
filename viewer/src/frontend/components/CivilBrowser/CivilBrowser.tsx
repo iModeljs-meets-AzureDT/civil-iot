@@ -46,6 +46,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
     if (component === undefined) {
       SensorMarkerSetDecoration.clear();
+      EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
     }
 
@@ -54,30 +55,40 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
+    EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
+
+    const margin = 0.25;
+    const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
+    IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
+
     const data = CivilDataModel.get();
     const components = data.getSensorsForParent(component.id);
     await SensorMarkerSetDecoration.refresh(components);
 
-    await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
-    EmphasizeAssets.emphasize([component.composingId], IModelApp.viewManager.selectedView!);
-    this.props.imodel.selectionSet.replace(component.geometricId);
+    // this.props.imodel.selectionSet.replace(component.geometricId);
   }
 
   private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
     if (!sensor) {
       SensorMarkerSetDecoration.clear();
+      EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
     }
+
+    const data = CivilDataModel.get();
+    const assets = data.getComponentsByIds([sensor.composingId]);
+    const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
+    EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
 
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);
       IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
     }
-    this.props.imodel.selectionSet.replace(sensor.id);
+
+    // this.props.imodel.selectionSet.replace(sensor.id);
   }
 
-  /** The sample's render method */
   public render() {
     let content;
     let title;
