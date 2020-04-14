@@ -16,9 +16,9 @@ import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
 
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 
-// const STATUS_TO_STRING = ["High", "Medium", "Normal"];
+const STATUS_TO_STRING = ["High", "Medium", "Normal"];
 
-// const STATUS_COUNT = 3;
+const STATUS_COUNT = 3;
 const IMAGE_SIZE = 30;
 const MIN_CLUSTER_SIZE = 2;
 
@@ -29,7 +29,7 @@ export class SensorMarker extends Marker {
   protected _isFeatured: boolean;
 
   public get status(): number {
-    return 0; // this._component.status;
+    return 2; // this._component.status;
   }
   public get markerImage(): HTMLImageElement {
     return this._image;
@@ -95,49 +95,49 @@ export class SensorMarker extends Marker {
 /** A Marker used to show a cluster of saved views. */
 class SensorClusterMarker extends Marker {
   private _cluster: Cluster<SensorMarker>;
-  // private _maxStatus: number = 100;
-  // RGB values for:  red orange green light-green
-  // private _colors: string[] = ["#C00000", "#ED7D31", "#92D050", "#00B050"];
+  private _maxStatus: number = 100;
+  // RGB values for:  red orange green
+  private _colors: string[] = ["#C00000", "#ED7D31", "#92D050"];
 
   /** Create a new cluster marker */
   constructor(location: XYAndZ, size: XAndY, cluster: Cluster<SensorMarker>) {
     super(location, size);
 
     this._cluster = cluster;
-    // this._cluster.markers.forEach((marker) => {
-    //   if (marker.status < this._maxStatus) this._maxStatus = marker.status;
-    // });
-    // this.label = cluster.markers.length.toLocaleString();
-    // this.labelColor = this._colors[this._maxStatus];
-    // this.labelFont = "bold 16px san-serif";
-    // let title = "";
-    // const statusCounts: number[] = new Array<number>();
-    // for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
-    // cluster.markers.forEach((marker) => {
-    //   statusCounts[marker.status]++;
-    // });
+    this._cluster.markers.forEach((marker) => {
+      if (marker.status < this._maxStatus) this._maxStatus = marker.status;
+    });
+    this.label = cluster.markers.length.toLocaleString();
+    this.labelColor = this._colors[this._maxStatus];
+    this.labelFont = "bold 16px san-serif";
+    let title = "";
+    const statusCounts: number[] = new Array<number>();
+    for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
+    cluster.markers.forEach((marker) => {
+      statusCounts[marker.status]++;
+    });
 
-    // title += "<table><caption><b>Status:</b></caption>";
-    // for (let i: number = 0; i < STATUS_COUNT; i++) {
-    //   if (statusCounts[i])
-    //     title +=
-    //       "<tr><td>" +
-    //       STATUS_TO_STRING[i] +
-    //       "</td><td><b>" +
-    //       statusCounts[i] +
-    //       "<b></td></tr>";
-    // }
-    // title += "</table>";
+    title += "<table><caption><b>Status:</b></caption>";
+    for (let i: number = 0; i < STATUS_COUNT; i++) {
+      if (statusCounts[i])
+        title +=
+          "<tr><td>" +
+          STATUS_TO_STRING[i] +
+          "</td><td><b>" +
+          statusCounts[i] +
+          "<b></td></tr>";
+    }
+    title += "</table>";
 
-    // const div = document.createElement("div");
-    // div.innerHTML = title;
-    // this.title = div;
+    const div = document.createElement("div");
+    div.innerHTML = title;
+    this.title = div;
   }
 
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = "#92D050"; // this._colors[this._maxStatus];
+    ctx.strokeStyle = this._colors[this._maxStatus];   // "#92D050"
     ctx.fillStyle = "white";
     ctx.lineWidth = 3;
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
