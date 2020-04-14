@@ -24,6 +24,7 @@ export enum CivilBrowserMode {
 
 interface CivilBrowserState {
   mode: CivilBrowserMode;
+  selectedComponent?: CivilComponentProps;
 }
 
 interface CivilBrowserProps {
@@ -48,6 +49,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
+      this.setState({ selectedComponent: undefined });
       return;
     }
 
@@ -66,6 +68,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     const components = data.getSensorsForParent(component.id);
     SensorMarkerSetDecoration.show(components);
 
+    this.setState({ selectedComponent: component });
     // this.props.imodel.selectionSet.replace(component.geometricId);
   }
 
@@ -117,7 +120,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.Sensors: {
-        content = <SensorTree onNodeSelected={this._sensorSelected} />;
+        content = <SensorTree onNodeSelected={this._sensorSelected} filterBy={this.state.selectedComponent} />;
         title = "Sensors";
         break;
       }
