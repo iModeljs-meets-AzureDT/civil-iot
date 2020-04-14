@@ -7,11 +7,13 @@ import "./CivilBrowser.scss";
 import { IModelConnection, IModelApp } from "@bentley/imodeljs-frontend";
 import { SidePanelContainer } from "../SidePanelContainer/SidePanelContainer";
 import { CivilMainMenu } from "./CivilMainMenu";
-import { CivilComponentProps } from "../../api/CivilDataModel";
+import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
+import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { AssetTree } from "./AssetTree";
 import { Range3d } from "@bentley/geometry-core";
+import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -39,19 +41,34 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     };
   }
 
-  private _componentSelected = async (component: CivilComponentProps): Promise<void> => {
+  private _componentSelected = async (component: CivilComponentProps | undefined): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 
-    if (undefined === component.geometricId) {
-      alert("No geometryId");
+    if (component === undefined) {
+      SensorMarkerSetDecoration.clear();
       return;
     }
 
+    if (undefined === component.geometricId) {
+      // alert("No geometryId");
+      return;
+    }
+
+    const data = CivilDataModel.get();
+    const components = data.getSensorsForParent(component.id);
+    await SensorMarkerSetDecoration.refresh(components);
+
     await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
+    EmphasizeAssets.emphasize([component.composingId], IModelApp.viewManager.selectedView!);
     this.props.imodel.selectionSet.replace(component.geometricId);
   }
 
-  private _sensorSelected = async (sensor: CivilComponentProps): Promise<void> => {
+  private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+    if (!sensor) {
+      SensorMarkerSetDecoration.clear();
+      return;
+    }
+
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);

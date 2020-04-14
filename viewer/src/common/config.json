@@ -4,7 +4,7 @@
   // Must un-comment the lines below and set these variables before testing - create a new project and
   // iModel with the developer registration procedure here - https://git.io/fx8YP
   // -----------------------------------------------------------------------------------------------------------
-  "imjs_test_project" : "CoffsHarborAug2", // Set this to the name of the sample project
-  "imjs_test_imodel"  : "CoffsHarborAug2", // Set this to the name of the sample iModel
-   "imjs_backend" : 1 // Un-comment to use general-purpose-backend. Default value is 0 = local backend
+  "imjs_test_project": "CoffsHarbourAug3", // Set this to the name of the sample project
+  "imjs_test_imodel": "CoffsHarbourAug3", // Set this to the name of the sample iModel
+  "imjs_backend": 1 // Un-comment to use general-purpose-backend. Default value is 0 = local backend
 }

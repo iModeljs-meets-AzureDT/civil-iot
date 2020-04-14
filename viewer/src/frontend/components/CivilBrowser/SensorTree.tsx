@@ -9,7 +9,7 @@ import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
 
 interface SensorTreeProps {
-  onNodeSelected(component: CivilComponentProps): void;
+  onNodeSelected(component: CivilComponentProps | undefined): void;
 }
 
 export function SensorTree(props: SensorTreeProps) {

@@ -53,7 +53,7 @@ export class MenuDataProvider implements ITreeDataProvider {
       return [
         this.createNode(CivilBrowserMode.ModelBreakdown, "Model Breakdown", "HierarchyTree_36.png"),
         this.createNode(CivilBrowserMode.Assets, "Assets", "Road_36.png"),
-        this.createNode(CivilBrowserMode.Sensors, "Sensors", "Dashboard_2.svg"),
+        this.createNode(CivilBrowserMode.Sensors, "Sensors", "traffic-sensor.svg"),
       ];
     }
     return [];
