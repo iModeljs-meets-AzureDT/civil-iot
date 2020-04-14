@@ -45,6 +45,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     // console.log("zoom to component with id " + component.id);
 
     if (component === undefined) {
+      this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
@@ -63,13 +64,14 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
     const data = CivilDataModel.get();
     const components = data.getSensorsForParent(component.id);
-    await SensorMarkerSetDecoration.refresh(components);
+    SensorMarkerSetDecoration.show(components);
 
     // this.props.imodel.selectionSet.replace(component.geometricId);
   }
 
   private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
     if (!sensor) {
+      this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
@@ -79,6 +81,9 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     const assets = data.getComponentsByIds([sensor.composingId]);
     const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
     EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
+
+    const components = data.getSensorsOfParent(sensor);
+    SensorMarkerSetDecoration.show(components, sensor.id);
 
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
