@@ -14,7 +14,7 @@ import {
 } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
 
-import { CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
+import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 
 // const STATUS_TO_STRING = ["High", "Medium", "Normal"];
 
@@ -24,7 +24,7 @@ const MIN_CLUSTER_SIZE = 2;
 
 /** Marker to show a saved view camera location. */
 export class SensorMarker extends Marker {
-  protected _component: any;
+  protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
 
   public get status(): number {
@@ -35,12 +35,12 @@ export class SensorMarker extends Marker {
   }
 
   /** Create a new SensorMarker */
-  constructor(public component: any, image: HTMLImageElement) {
+  constructor(public component: CivilComponentProps, image: HTMLImageElement) {
     super(
       {
-        x: component.position.x,
-        y: component.position.y,
-        z: component.position.z,
+        x: component.position ? component.position.x : 0,
+        y: component.position ? component.position.y : 0,
+        z: component.position ? component.position.z : 0,
       },
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
@@ -160,7 +160,8 @@ class SensorClusterMarker extends Marker {
     const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
       elementIds.push(marker.component.id);
-      positions.push(marker.component.position);
+      if (marker.component.position)
+        positions.push(marker.component.position);
     });
     const vp = ev.viewport;
     if (0 < elementIds.length && vp) {
@@ -192,12 +193,12 @@ export class SensorMarkerSetDecoration {
   private _images: Array<HTMLImageElement | undefined> = [];
   public static decorator?: SensorMarkerSetDecoration; // static variable so we can tell if the decorator is active.
 
-  public constructor(sensors: any[]) {
+  public constructor(sensors: CivilComponentProps[]) {
     this.loadAll(sensors); // tslint:disable-line: no-floating-promises
   }
 
   // load all images. After they're loaded, make the incident markers
-  private async loadAll(sensors: any[]) {
+  private async loadAll(sensors: CivilComponentProps[]) {
     const typeIndex = [
       CivilDataComponentType.AirQualitySensor,
       CivilDataComponentType.TemperatureSensor,
@@ -226,7 +227,7 @@ export class SensorMarkerSetDecoration {
         let index = 0;
         typeIndex.forEach((type) => {
           if (component.type === type)
-            this.addMarker(component, this._images[index]);
+            this.addMarker(component, this._images[index]!);
           else
             index = index + 1;
         });
@@ -234,7 +235,7 @@ export class SensorMarkerSetDecoration {
     });
   }
 
-  private addMarker(component: any, image: any) {
+  private addMarker(component: CivilComponentProps, image: HTMLImageElement) {
     const marker = new SensorMarker(component, image);
     this._markerSet.markers.add(marker);
   }
@@ -247,7 +248,7 @@ export class SensorMarkerSetDecoration {
   }
 
   /** Start showing markers if not currently active. */
-  public static show(sensors: any[]) {
+  public static show(sensors: CivilComponentProps[]) {
     if (undefined !== SensorMarkerSetDecoration.decorator) return;
 
     // start by creating the SensorMarkerSetDecoration object and adding it as a ViewManager decorator.
@@ -263,14 +264,14 @@ export class SensorMarkerSetDecoration {
   }
 
   /** Toggle display of markers on and off. */
-  public static toggle(sensors: any[]) {
+  public static toggle(sensors: CivilComponentProps[]) {
     if (undefined === SensorMarkerSetDecoration.decorator)
       return this.show(sensors);
     this.clear();
   }
 
   /** Update markers from current sensors if currently displayed. */
-  public static refresh(sensors: any[]) {
+  public static refresh(sensors: CivilComponentProps[]) {
     if (undefined === SensorMarkerSetDecoration.decorator) {
       // if needed, create the SensorMarkerSetDecoration object and add it as a ViewManager decorator.
       SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors);

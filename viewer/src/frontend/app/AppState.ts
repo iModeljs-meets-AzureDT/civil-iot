@@ -3,44 +3,15 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import { createStore, combineReducers, Store } from "redux";
-import { FrameworkState, FrameworkReducer, createAction, ActionsUnion, DeepReadonly } from "@bentley/ui-framework";
-
-export interface CivilViewerAppState {
-  sensorLocations?: any[];
-}
-
-const initialState: CivilViewerAppState = {};
-
-export const CivilViewerAppActions = {
-  setSensorLocations: (sensorLocations: any[]) =>
-    createAction("SampleApp:SET_SENSOR_LOCATIONS", { sensorLocations }),
-};
-
-export type CivilViewerAppActionsUnion = ActionsUnion<
-  typeof CivilViewerAppActions
->;
-
-function CivilViewerAppReducer(
-  state: CivilViewerAppState = initialState,
-  action: CivilViewerAppActionsUnion,
-): DeepReadonly<CivilViewerAppState> {
-  switch (action.type) {
-    case "SampleApp:SET_SENSOR_LOCATIONS":
-      return { ...state, sensorLocations: action.payload.sensorLocations };
-  }
-
-  return state;
-}
+import { FrameworkState, FrameworkReducer } from "@bentley/ui-framework";
 
 // React-redux interface stuff
 export interface RootState {
-  civilViewerAppState: CivilViewerAppState;
   frameworkState?: FrameworkState;
 }
 
 // React-redux interface stuff
 export interface RootState {
-  civilViewerAppState: CivilViewerAppState;
   frameworkState?: FrameworkState;
 }
 
@@ -56,7 +27,6 @@ export class AppState {
   constructor() {
     // this is the rootReducer for the sample application.
     this._rootReducer = combineReducers<RootState>({
-      civilViewerAppState: CivilViewerAppReducer,
       frameworkState: FrameworkReducer,
     } as any);
 
