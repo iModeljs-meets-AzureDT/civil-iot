@@ -160,4 +160,8 @@ export class CivilDataModel {
   public getSensorsForParent(parentId: string): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => c.composingId === parentId);
   }
+
+  public getSensorsOfParent(sensor: CivilComponentProps): CivilComponentProps[] {
+    return this._allSensors.filter((c: CivilComponentProps) => c.composingId === sensor.composingId);
+  }
 }

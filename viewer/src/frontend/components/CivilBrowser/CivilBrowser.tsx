@@ -55,7 +55,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
     const data = CivilDataModel.get();
     const components = data.getSensorsForParent(component.id);
-    await SensorMarkerSetDecoration.refresh(components);
+    SensorMarkerSetDecoration.refresh(components);
 
     await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
     this.props.imodel.selectionSet.replace(component.geometricId);
@@ -66,6 +66,10 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       SensorMarkerSetDecoration.clear();
       return;
     }
+
+    const data = CivilDataModel.get();
+    const components = data.getSensorsOfParent(sensor);
+    SensorMarkerSetDecoration.refresh(components);
 
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);

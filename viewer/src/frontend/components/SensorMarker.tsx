@@ -247,7 +247,7 @@ export class SensorMarkerSetDecoration {
   }
 
   /** Start showing markers if not currently active. */
-  public static async show(sensors: any[]): Promise<void> {
+  public static show(sensors: any[]) {
     if (undefined !== SensorMarkerSetDecoration.decorator) return;
 
     // start by creating the SensorMarkerSetDecoration object and adding it as a ViewManager decorator.
@@ -263,14 +263,14 @@ export class SensorMarkerSetDecoration {
   }
 
   /** Toggle display of markers on and off. */
-  public static async toggle(sensors: any[]): Promise<void> {
+  public static toggle(sensors: any[]) {
     if (undefined === SensorMarkerSetDecoration.decorator)
       return this.show(sensors);
     this.clear();
   }
 
   /** Update markers from current sensors if currently displayed. */
-  public static async refresh(sensors: any[]): Promise<void> {
+  public static refresh(sensors: any[]) {
     if (undefined === SensorMarkerSetDecoration.decorator) {
       // if needed, create the SensorMarkerSetDecoration object and add it as a ViewManager decorator.
       SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors);
