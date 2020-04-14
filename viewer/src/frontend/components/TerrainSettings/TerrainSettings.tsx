@@ -105,14 +105,13 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       </>
     );
   }
-  //  <ToolButton toolId={""} iconSpec={<SvgSprite src={terrainIcon} />} labelKey={"Terrain Control"} execute={this._togglePopup}>
 
   public render() {
     const { showPopup } = this.state;
 
     return (
       <>
-        <ToolButton toolId={""} iconSpec="icon-network" labelKey={"Terrain Control"} execute={this._togglePopup}>
+        <ToolButton toolId={""} iconSpec="icon-network" labelKey={"Map Settings"} execute={this._togglePopup}>
           <span className="icon icon-chevron-down" />
         </ToolButton>
         <Popup
