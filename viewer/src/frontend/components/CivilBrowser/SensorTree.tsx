@@ -10,25 +10,37 @@ import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivil
 
 interface SensorTreeProps {
   onNodeSelected(component: CivilComponentProps | undefined): void;
+  filterBy?: CivilComponentProps;
 }
 
 export function SensorTree(props: SensorTreeProps) {
-  const dataProvider = React.useMemo(() => new SensorDataProvider(), []);
+  const dataProvider = React.useMemo(() => new SensorDataProvider(props.filterBy), []);
   return AbstractCivilTree({ dataProvider, ...props });
 }
 
 class SensorDataProvider implements ITreeDataProvider {
+  private filterBy?: CivilComponentProps;
+
+  constructor(filterBy?: CivilComponentProps) {
+    this.filterBy = filterBy;
+  }
+
+  private getFilteredSensorList() {
+    const data = CivilDataModel.get();
+    const sensors = data.getAllSensors();
+
+    if (undefined === this.filterBy)
+      return sensors;
+
+    return sensors;
+  }
 
   public async getNodesCount(_parent?: TreeNodeItem) {
-    const data = CivilDataModel.get();
-    const components = data.getAllSensors();
-
-    return components.length;
+    return this.getFilteredSensorList().length;
   }
 
   public async getNodes(_parent?: TreeNodeItem) {
-    const data = CivilDataModel.get();
-    const components = data.getAllSensors();
+    const components = this.getFilteredSensorList();
 
     components.sort((a: CivilComponentProps, b: CivilComponentProps) => {
       if (a.type === b.type)

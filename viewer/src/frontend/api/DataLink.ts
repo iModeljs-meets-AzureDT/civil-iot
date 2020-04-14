@@ -5,7 +5,6 @@
 import { IModelConnection } from "@bentley/imodeljs-frontend";
 import { Point3d } from "@bentley/geometry-core";
 
-
 export interface ClassMapQueryRow {
   name: string;
   id: string;
