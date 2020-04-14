@@ -3,6 +3,7 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import { IModelConnection } from "@bentley/imodeljs-frontend";
+import { Point3d } from "@bentley/geometry-core";
 
 export interface ClassMapQueryRow {
   name: string;
@@ -21,7 +22,7 @@ export interface CompositionItemQueryRow {
 
 export interface SensorQueryRow {
   id: string;
-  position: any;
+  position: Point3d;
   code: string;
   typeCode: string;
   observedId: string;

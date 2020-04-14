@@ -27,6 +27,8 @@ import {
   IModelConnectedViewSelector,
   IModelConnectedNavigationWidget,
   ToolButton,
+  PopupButton,
+  PopupButtonChildrenRenderPropArgs,
 } from "@bentley/ui-framework";
 
 import { TableContent } from "../contentviews/TableContent";
@@ -207,13 +209,21 @@ export class SampleFrontstage extends FrontstageProvider {
   }
 
   /** Get the CustomItemDef for TerrainSettings  */
-  private get _terrainSettingsItemDef() {
+  public get _terrainSettingsItemDef() {
     return new CustomItemDef({
       customId: "sampleApp:viewSelector",
       reactElement: (
-        <TerrainSettings placeholder={true} />
+        <PopupButton iconSpec="icon-network" label="Map Settings">
+          {this._renderPopupContents}
+        </PopupButton>
       ),
     });
+  }
+
+  private _renderPopupContents = ({ closePanel }: PopupButtonChildrenRenderPropArgs) => {
+    return (
+      <TerrainSettings onExecute={closePanel} onCancel={closePanel} />
+    );
   }
 
 }

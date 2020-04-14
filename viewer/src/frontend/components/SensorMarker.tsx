@@ -14,7 +14,7 @@ import {
 } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
 
-import { CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
+import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 
 // const STATUS_TO_STRING = ["High", "Medium", "Normal"];
 
@@ -24,8 +24,9 @@ const MIN_CLUSTER_SIZE = 2;
 
 /** Marker to show a saved view camera location. */
 export class SensorMarker extends Marker {
-  protected _component: any;
+  protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
+  protected _isFeatured: boolean;
 
   public get status(): number {
     return 0; // this._component.status;
@@ -35,16 +36,17 @@ export class SensorMarker extends Marker {
   }
 
   /** Create a new SensorMarker */
-  constructor(public component: any, image: HTMLImageElement) {
+  constructor(public component: CivilComponentProps, image: HTMLImageElement, isFeatured: boolean) {
     super(
       {
-        x: component.position.x,
-        y: component.position.y,
-        z: component.position.z,
+        x: component.position ? component.position.x : 0,
+        y: component.position ? component.position.y : 0,
+        z: component.position ? component.position.z : 0,
       },
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
 
+    this._isFeatured = isFeatured;
     this._image = image;
     this.setImage(image);
 
@@ -75,9 +77,9 @@ export class SensorMarker extends Marker {
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.strokeStyle = "#92D050";
-    ctx.fillStyle = "white";
-    ctx.lineWidth = 3;
-    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+    ctx.fillStyle = this._isFeatured ? "cyan" : "white";
+    ctx.lineWidth = this._isFeatured ? 4 : 3;
+    ctx.arc(0, 0, this._isFeatured ? 25 : 20, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }
@@ -160,7 +162,8 @@ class SensorClusterMarker extends Marker {
     const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
       elementIds.push(marker.component.id);
-      positions.push(marker.component.position);
+      if (marker.component.position)
+        positions.push(marker.component.position);
     });
     const vp = ev.viewport;
     if (0 < elementIds.length && vp) {
@@ -192,12 +195,12 @@ export class SensorMarkerSetDecoration {
   private _images: Array<HTMLImageElement | undefined> = [];
   public static decorator?: SensorMarkerSetDecoration; // static variable so we can tell if the decorator is active.
 
-  public constructor(sensors: any[]) {
-    this.loadAll(sensors); // tslint:disable-line: no-floating-promises
+  public constructor(sensors: CivilComponentProps[], featuredSensorId?: string) {
+    this.loadAll(sensors, featuredSensorId); // tslint:disable-line: no-floating-promises
   }
 
   // load all images. After they're loaded, make the incident markers
-  private async loadAll(sensors: any[]) {
+  private async loadAll(sensors: CivilComponentProps[], featuredSensorId?: string) {
     const typeIndex = [
       CivilDataComponentType.AirQualitySensor,
       CivilDataComponentType.TemperatureSensor,
@@ -226,7 +229,8 @@ export class SensorMarkerSetDecoration {
         let index = 0;
         typeIndex.forEach((type) => {
           if (component.type === type)
-            this.addMarker(component, this._images[index]);
+            this.addMarker(component, this._images[index]!,
+              (featuredSensorId !== undefined && component.id === featuredSensorId));
           else
             index = index + 1;
         });
@@ -234,8 +238,8 @@ export class SensorMarkerSetDecoration {
     });
   }
 
-  private addMarker(component: any, image: any) {
-    const marker = new SensorMarker(component, image);
+  private addMarker(component: CivilComponentProps, image: HTMLImageElement, isFeatured: boolean) {
+    const marker = new SensorMarker(component, image, isFeatured);
     this._markerSet.markers.add(marker);
   }
 
@@ -246,12 +250,11 @@ export class SensorMarkerSetDecoration {
       this._markerSet.addDecoration(context);
   }
 
-  /** Start showing markers if not currently active. */
-  public static async show(sensors: any[]): Promise<void> {
-    if (undefined !== SensorMarkerSetDecoration.decorator) return;
-
-    // start by creating the SensorMarkerSetDecoration object and adding it as a ViewManager decorator.
-    SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors);
+  /** Show markers (clear existing ones if any). */
+  public static show(sensors: CivilComponentProps[], featuredSensorId?: string) {
+    this.clear();
+    // create the SensorMarkerSetDecoration object and add it as a ViewManager decorator.
+    SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors, featuredSensorId);
     IModelApp.viewManager.addDecorator(SensorMarkerSetDecoration.decorator!);
   }
 
@@ -263,20 +266,9 @@ export class SensorMarkerSetDecoration {
   }
 
   /** Toggle display of markers on and off. */
-  public static async toggle(sensors: any[]): Promise<void> {
+  public static toggle(sensors: CivilComponentProps[]) {
     if (undefined === SensorMarkerSetDecoration.decorator)
       return this.show(sensors);
     this.clear();
-  }
-
-  /** Update markers from current sensors if currently displayed. */
-  public static async refresh(sensors: any[]): Promise<void> {
-    if (undefined === SensorMarkerSetDecoration.decorator) {
-      // if needed, create the SensorMarkerSetDecoration object and add it as a ViewManager decorator.
-      SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors);
-      IModelApp.viewManager.addDecorator(SensorMarkerSetDecoration.decorator!);
-    }
-    this.clear();
-    return this.show(sensors);
   }
 }
