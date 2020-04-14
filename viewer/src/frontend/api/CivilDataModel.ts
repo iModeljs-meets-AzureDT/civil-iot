@@ -101,7 +101,8 @@ export class CivilDataModel {
     const rows = await dataLink.queryAllSensors();
     rows.forEach((row) => {
       const type = this.getSensorTypeForQueryRow(row);
-      this._allSensors.push({ type, id: row.id, label: row.code, position: row.position, composingId: "" });
+      const composingId = (undefined !== row.observedId) ? row.observedId : "";
+      this._allSensors.push({ type, id: row.id, label: row.code, position: row.position, composingId });
     });
   }
 
@@ -154,5 +155,9 @@ export class CivilDataModel {
 
   public getSensorsForTypes(types: CivilDataComponentType[]): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => -1 !== types.indexOf(c.type));
+  }
+
+  public getSensorsForParent(parentId: string): CivilComponentProps[] {
+    return this._allSensors.filter((c: CivilComponentProps) => c.composingId === parentId);
   }
 }

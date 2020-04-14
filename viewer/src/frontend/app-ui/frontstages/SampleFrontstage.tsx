@@ -63,12 +63,6 @@ export class SampleFrontstage extends FrontstageProvider {
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
       // NEEDSWORK: find a better place to do this
       await CivilDataModel.initialize(vp.iModel);
-
-      const data = CivilDataModel.get();
-      const components = data.getAllSensors();
-
-      // tslint:disable-next-line: no-floating-promises
-      SensorMarkerSetDecoration.show(components);
     });
 
     // Create the content layouts.
