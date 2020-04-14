@@ -16,6 +16,7 @@ interface TerrainSettingsProps {
 
 interface TerrainSettingsState {
   showPopup: boolean;
+  mapIsOn: boolean;
   terrainIsOn: boolean;
   transparency: number;
 }
@@ -24,6 +25,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
   constructor(props: TerrainSettingsProps, context?: any) {
     super(props, context);
 
+    let mapIsOn = false;
     let terrainIsOn = false;
     let transparency = 0;
 
@@ -31,11 +33,12 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
     if (undefined !== vp) {
       const view = vp.view as SpatialViewState;
       const backgroundMap = view.getDisplayStyle3d().settings.backgroundMap;
+      mapIsOn = view.viewFlags.backgroundMap;
       terrainIsOn = backgroundMap.applyTerrain;
       transparency = false === backgroundMap.transparency ? 0 : backgroundMap.transparency;
     }
 
-    this.state = { showPopup: false, terrainIsOn, transparency };
+    this.state = { showPopup: false, mapIsOn, terrainIsOn, transparency };
   }
 
   private _onChangeTransparency = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +50,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
     });
   }
 
-  private _onToggleTerrain = (turnOn: boolean) => {
+  private _onToggleMap = (turnOn: boolean) => {
     const vp = IModelApp.viewManager.selectedView as ScreenViewport;
 
     const view = vp.view as SpatialViewState;
@@ -62,13 +65,19 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       ) {
         vp.changeBackgroundMapProps({
           providerName: "BingProvider",
-          providerData: { mapType: BackgroundMapType.Hybrid },
-          applyTerrain: true,
+          providerData: { mapType: BackgroundMapType.Hybrid }
         });
       }
-
-      vp.synchWithView(false);
     }
+
+    vp.synchWithView(false);
+    this.setState({ mapIsOn: turnOn });
+  }
+
+  private _onToggleTerrain = (turnOn: boolean) => {
+    const vp = IModelApp.viewManager.selectedView as ScreenViewport;
+    vp.changeBackgroundMapProps({ applyTerrain: turnOn });
+    vp.synchWithView(false);
     vp.invalidateScene();
 
     this.setState({ terrainIsOn: turnOn });
@@ -86,24 +95,24 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
     return (
       <>
         <div className="terrain-settings">
+          <span>Show Map</span>
+          <Toggle isOn={this.state.mapIsOn} onChange={this._onToggleMap} />
           <span>Show Terrain</span>
-          <Toggle isOn={this.state.terrainIsOn} onChange={this._onToggleTerrain} />
-          {this.state.terrainIsOn &&
-            <>
-              <span>Transparency</span>
-              <input type="range" min="0" max="1" step="0.01" value={this.state.transparency} onChange={this._onChangeTransparency}></input>
-            </>}
+          <Toggle isOn={this.state.terrainIsOn} onChange={this._onToggleTerrain} disabled={!this.state.mapIsOn} />
+          <span>Transparency</span>
+          <input type="range" min="0" max="1" step="0.01" value={this.state.transparency} onChange={this._onChangeTransparency} disabled={!this.state.mapIsOn}></input>
         </div>
       </>
     );
   }
-  // position={RelativePosition.Bottom}
+  //  <ToolButton toolId={""} iconSpec={<SvgSprite src={terrainIcon} />} labelKey={"Terrain Control"} execute={this._togglePopup}>
+
   public render() {
     const { showPopup } = this.state;
 
     return (
       <>
-        <ToolButton toolId={""} iconSpec={<SvgSprite src={terrainIcon} />} labelKey={"Terrain Control"} execute={this._togglePopup}>
+        <ToolButton toolId={""} iconSpec="icon-network" labelKey={"Terrain Control"} execute={this._togglePopup}>
           <span className="icon icon-chevron-down" />
         </ToolButton>
         <Popup
