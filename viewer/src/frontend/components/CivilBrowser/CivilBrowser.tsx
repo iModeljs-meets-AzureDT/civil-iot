@@ -40,8 +40,13 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     };
   }
 
-  private _componentSelected = async (component: CivilComponentProps): Promise<void> => {
+  private _componentSelected = async (component: CivilComponentProps | undefined): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
+
+    if (component === undefined) {
+      SensorMarkerSetDecoration.clear();
+      return;
+    }
 
     if (undefined === component.geometricId) {
       // alert("No geometryId");
@@ -56,7 +61,12 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     this.props.imodel.selectionSet.replace(component.geometricId);
   }
 
-  private _sensorSelected = async (sensor: CivilComponentProps): Promise<void> => {
+  private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+    if (!sensor) {
+      SensorMarkerSetDecoration.clear();
+      return;
+    }
+
     if (undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);

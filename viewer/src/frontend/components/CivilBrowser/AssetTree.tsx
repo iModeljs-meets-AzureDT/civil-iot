@@ -9,7 +9,7 @@ import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
 
 interface AssetTreeProps {
-  onNodeSelected(component: CivilComponentProps): void;
+  onNodeSelected(component: CivilComponentProps | undefined): void;
 }
 
 export function AssetTree(props: AssetTreeProps) {

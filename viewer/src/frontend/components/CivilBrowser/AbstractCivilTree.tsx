@@ -45,7 +45,7 @@ export function createCivilComponentTreeNode(component: CivilComponentProps, has
 }
 
 class AbstractCivilSelectionHandler extends TreeEventHandler {
-  private _onNodeSelected: (component: CivilComponentProps) => void;
+  private _onNodeSelected: (component: CivilComponentProps | undefined) => void;
 
   constructor(nodeLoader: AbstractTreeNodeLoaderWithProvider<TreeDataProvider>, onNodeSelected: any) {
     super({ modelSource: nodeLoader.modelSource, nodeLoader, collapsedChildrenDisposalEnabled: true });
@@ -57,8 +57,11 @@ class AbstractCivilSelectionHandler extends TreeEventHandler {
     // call base selection handling
     const baseSubscription = super.onSelectionModified(event);
     // subscribe to selection modifications and additionally change checkboxes
-    const subscription = event.modifications.subscribe(({ selectedNodeItems /*, deselectedNodeItems*/ }) => {
-      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
+    const subscription = event.modifications.subscribe(({ selectedNodeItems, deselectedNodeItems }) => {
+      if (deselectedNodeItems && deselectedNodeItems.length > 0)
+        this._onNodeSelected(undefined);
+      else
+        this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
     });
     // stop checkboxes handling when base selection handling is stopped
     baseSubscription?.add(subscription);
