@@ -52,6 +52,8 @@ export class GenericExporter {
     this.exportInstancesOf("RoadNetworkComposition:Bridge");
     this.exportInstancesOf("RoadNetworkComposition:RoadSegment");
     this.exportInstancesOf("Generic:GraphicalModel3d");
+    this.exportInstancesOf("BisCore:ViewDefinition3d");
+    this.exportInstancesOf("BisCore:DisplayStyle3d");
     this.exportGrouped();
     this.exportCategories();
     this.exportCompositionHierarchy();

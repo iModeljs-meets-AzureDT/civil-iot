@@ -13,6 +13,7 @@ import { SensorTree } from "./SensorTree";
 import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { AssetTree } from "./AssetTree";
 import { Range3d } from "@bentley/geometry-core";
+import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -58,6 +59,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     SensorMarkerSetDecoration.refresh(components);
 
     await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { animateFrustumChange: true });
+    EmphasizeAssets.emphasize([component.composingId], IModelApp.viewManager.selectedView!);
     this.props.imodel.selectionSet.replace(component.geometricId);
   }
 

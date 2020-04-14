@@ -1,7 +1,7 @@
-import { GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel, DbResult } from "@bentley/bentleyjs-core";
+import { DbResult, GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
-import { BackendLoggerCategory, BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, Element, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, PhysicalObject, SpatialCategory, Subject, ECSqlStatement } from "@bentley/imodeljs-backend";
-import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, Placement3dProps, RelatedElement, TypeDefinitionElementProps, RenderMode } from "@bentley/imodeljs-common";
+import { BackendLoggerCategory, BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ECSqlStatement, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
+import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, RelatedElement, RenderMode, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
 import { ObservationTypeProps } from "./IoTDevices";
 import { CompositionItemProps, RoadNetworkClassification } from "./RoadNetworkComposition";
 
@@ -95,7 +95,8 @@ export class SensorImporter {
     }
     if (inputData.views) {
       inputData.views.forEach((viewData: any) => {
-        this.insertView(viewData.name, viewData.models, viewData.categories);
+        const displayStyleId: Id64String | undefined = this.queryByCodeValue(DisplayStyle3d.classFullName, viewData.displayStyle);
+        this.insertView(viewData.name, viewData.models, viewData.categories, displayStyleId);
       });
     }
   }
@@ -278,30 +279,28 @@ export class SensorImporter {
     return OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, "Sensor View", modelSelectorId, categorySelectorId, displayStyleId, viewExtents, StandardViewIndex.Iso);
   }
 
-  private insertView(viewName: string, modelIds: Id64String[], categoryCodes: string[]): Id64String {
+  private insertView(viewName: string, modelIds: Id64String[], categoryCodes: string[], displayStyleId?: Id64String): Id64String {
+    // Query the extents of the Sensor PhysicalModel to set the extents of the view
+    const physicalModel: PhysicalModel = this._iModelDb.models.getModel<PhysicalModel>(this._physicalModelId);
+    const viewExtents: AxisAlignedBox3d = physicalModel.queryExtents();
+    // Insert a ModelSelector that contains the specified models
+    const modelSelectorId = ModelSelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Models`, modelIds.concat([this._physicalModelId]));
+    // Insert a CategorySelector that contains the specified categories
     const categoryIds: Id64String[] = categoryCodes.map((categoryCode: string) => {
       return this._iModelDb.elements.queryElementIdByCode(SpatialCategory.createCode(this._iModelDb, IModel.dictionaryId, categoryCode))!;
     });
-    /*
-    const modelIds: Id64String[] = this._iModelDb.withPreparedStatement(`SELECT ECInstanceId FROM Generic:GraphicalModel3d`, (statement: ECSqlStatement): Id64String[] => {
-      const subjectId = this.querySubjectByCodeValue(subjectCode);
-      const ids: Id64String[] = [];
-      while (DbResult.BE_SQLITE_ROW === statement.step()) {
-        const id: Id64String = statement.getValue(0).getId();
-        if (this.isUnderSubject(id, subjectId)) {
-          ids.push();
-        }
-      }
-      return ids;
-    });
-    */
-    const viewExtents: AxisAlignedBox3d = this._iModelDb.projectExtents;
-    const modelSelectorId = ModelSelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Models`, modelIds.concat([this._physicalModelId]));
-    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Categories`, categoryIds.concat([this._sensorCategoryId, "0x2000000017d"]));
-    const displayStyle: DisplayStyle3d = DisplayStyle3d.create(this._iModelDb, this._definitionModelId, `${viewName} Display Style`);
-    displayStyle.settings.viewFlags.renderMode = RenderMode.SolidFill;
-    displayStyle.insert();
-    const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, viewName, modelSelectorId, categorySelectorId, displayStyle.id, viewExtents, StandardViewIndex.Iso);
+    const categorySelectorId = CategorySelector.insert(this._iModelDb, this._definitionModelId, `${viewName} Categories`, categoryIds.concat(["0x2000000017d"]));
+    // Ensure a DisplayStyle with certain attributes
+    if (undefined === displayStyleId) { // If a DisplayStyle was not provided, create a default one
+      displayStyleId = DisplayStyle3d.insert(this._iModelDb, this._definitionModelId, `${viewName} Display Style`);
+    }
+    const displayStyle: DisplayStyle3d = this._iModelDb.elements.getElement<DisplayStyle3d>(displayStyleId);
+    displayStyle.settings.viewFlags.renderMode = RenderMode.SmoothShade;
+    displayStyle.settings.viewFlags.visibleEdges = true;
+    displayStyle.settings.environment = { sky: { display: true } };
+    displayStyle.update();
+    // Insert the ViewDefinition
+    const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, viewName, modelSelectorId, categorySelectorId, displayStyleId, viewExtents, StandardViewIndex.Iso);
     this._iModelDb.views.setDefaultViewId(viewId);
     return viewId;
   }
@@ -313,30 +312,11 @@ export class SensorImporter {
     this._iModelDb.updateProjectExtents(extents);
   }
 
-  private querySubjectByCodeValue(codeValue: string): Id64String {
-    const sql = `SELECT ECInstanceId FROM ${Subject.classFullName} WHERE CodeValue=:codeValue`;
-    const subjectId = this._iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
+  private queryByCodeValue(classFullName: string, codeValue: string): Id64String | undefined {
+    const sql = `SELECT ECInstanceId FROM ${classFullName} WHERE CodeValue=:codeValue`;
+    return this._iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
       statement.bindString("codeValue", codeValue);
       return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
     });
-    if (subjectId) {
-      return subjectId;
-    }
-    throw new IModelError(IModelStatus.NotFound, `Subject ${codeValue} not found`);
-  }
-
-  private isUnderSubject(elementId: Id64String, subjectId: Id64String): boolean {
-    const sql = `SELECT Parent.Id FROM ${Element.classFullName} WHERE ECInstanceId=:elementId`;
-    const parentId = this._iModelDb.withPreparedStatement(sql, (statement: ECSqlStatement): Id64String | undefined => {
-      statement.bindId("elementId", elementId);
-      return DbResult.BE_SQLITE_ROW === statement.step() ? statement.getValue(0).getId() : undefined;
-    });
-    if ((undefined === parentId) || (IModel.rootSubjectId === parentId)) {
-      return false;
-    }
-    if (subjectId === parentId) {
-      return true;
-    }
-    return this.isUnderSubject(parentId, subjectId);
   }
 }

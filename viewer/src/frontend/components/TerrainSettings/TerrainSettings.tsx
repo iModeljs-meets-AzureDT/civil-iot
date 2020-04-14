@@ -65,7 +65,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       ) {
         vp.changeBackgroundMapProps({
           providerName: "BingProvider",
-          providerData: { mapType: BackgroundMapType.Hybrid }
+          providerData: { mapType: BackgroundMapType.Hybrid },
         });
       }
     }
