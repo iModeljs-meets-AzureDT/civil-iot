@@ -74,7 +74,7 @@ export class SensorMarker extends Marker {
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = "#00B050";
+    ctx.strokeStyle = "#92D050";
     ctx.fillStyle = "white";
     ctx.lineWidth = 3;
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
@@ -140,7 +140,7 @@ class SensorClusterMarker extends Marker {
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = this._colors[this._maxStatus];
+    ctx.strokeStyle = "#92D050"; // this._colors[this._maxStatus];
     ctx.fillStyle = "white";
     ctx.lineWidth = 3;
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
@@ -271,7 +271,11 @@ export class SensorMarkerSetDecoration {
 
   /** Update markers from current sensors if currently displayed. */
   public static async refresh(sensors: any[]): Promise<void> {
-    if (undefined === SensorMarkerSetDecoration.decorator) return;
+    if (undefined === SensorMarkerSetDecoration.decorator) {
+      // if needed, create the SensorMarkerSetDecoration object and add it as a ViewManager decorator.
+      SensorMarkerSetDecoration.decorator = new SensorMarkerSetDecoration(sensors);
+      IModelApp.viewManager.addDecorator(SensorMarkerSetDecoration.decorator!);
+    }
     this.clear();
     return this.show(sensors);
   }
