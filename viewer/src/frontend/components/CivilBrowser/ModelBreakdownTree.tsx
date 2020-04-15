@@ -7,9 +7,10 @@ import "./CivilBrowser.scss";
 import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
+import { SelectedNodeContext } from "./CivilBrowser";
 
 interface ModelBreakdownTreeProps {
-  onNodeSelected(component: CivilComponentProps): void;
+  onNodeSelected(selected: SelectedNodeContext): void;
 }
 
 export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {

@@ -161,11 +161,16 @@ export class CivilDataModel {
     return this._allSensors.filter((c: CivilComponentProps) => -1 !== types.indexOf(c.type));
   }
 
+  public getSensorsForParents(parents: CivilComponentProps[]): CivilComponentProps[] {
+    const parentIds = parents.map((c: CivilComponentProps) => c.id);
+    return this._allSensors.filter((c: CivilComponentProps) => -1 !== parentIds.indexOf(c.composingId));
+  }
+
   public getSensorsForParent(parentId: string): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => c.composingId === parentId);
   }
 
-  public getSensorsOfParent(sensor: CivilComponentProps): CivilComponentProps[] {
+  public getSensorsOfSameParent(sensor: CivilComponentProps): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => c.composingId === sensor.composingId);
   }
 }

@@ -14,6 +14,7 @@ import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { AssetTree } from "./AssetTree";
 import { Range3d } from "@bentley/geometry-core";
 import { EmphasizeAssets } from "../../api/EmphasizeAssets";
+import { ITreeDataProvider } from "@bentley/ui-components";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -22,9 +23,14 @@ export enum CivilBrowserMode {
   Sensors = "4",
 }
 
+export interface SelectedNodeContext {
+  component: CivilComponentProps;    // The node that is selected
+  dataProvider: ITreeDataProvider;    // For getting context about it's parent or children
+}
+
 interface CivilBrowserState {
   mode: CivilBrowserMode;
-  selectedComponent?: CivilComponentProps;
+  selectedComponent?: SelectedNodeContext;
 }
 
 interface CivilBrowserProps {
@@ -42,10 +48,10 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     };
   }
 
-  private _componentSelected = async (component: CivilComponentProps | undefined): Promise<void> => {
+  private _componentSelected = async (selected?: SelectedNodeContext): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 
-    if (component === undefined) {
+    if (undefined === selected) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
@@ -53,39 +59,45 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
-    if (undefined === component.geometricId) {
-      // alert("No geometryId");
-      return;
+    const component = selected.component;
+
+    if (undefined !== component.geometricId) {
+      EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
+
+      const margin = 0.25;
+      const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
+      IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
+
+      const data = CivilDataModel.get();
+      const components = data.getSensorsForParent(component.id);
+      SensorMarkerSetDecoration.show(components);
+
+      // this.props.imodel.selectionSet.replace(component.geometricId);
     }
 
-    EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
-
-    const margin = 0.25;
-    const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
-    IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
-
-    const data = CivilDataModel.get();
-    const components = data.getSensorsForParent(component.id);
-    SensorMarkerSetDecoration.show(components);
-
-    this.setState({ selectedComponent: component });
-    // this.props.imodel.selectionSet.replace(component.geometricId);
+    this.setState({ selectedComponent: selected });
   }
 
-  private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
-    if (!sensor) {
+  private _clearComponentSelected = async (): Promise<void> => {
+    this._componentSelected();
+  }
+
+  private _sensorSelected = async (selected: SelectedNodeContext | undefined): Promise<void> => {
+    if (!selected) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
     }
 
+    const sensor = selected.component;
+
     const data = CivilDataModel.get();
     const assets = data.getComponentsByIds([sensor.composingId]);
     const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
     EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
 
-    const components = data.getSensorsOfParent(sensor);
+    const components = data.getSensorsOfSameParent(sensor);
     SensorMarkerSetDecoration.show(components, sensor.id);
 
     if (undefined !== sensor.position) {
@@ -120,7 +132,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.Sensors: {
-        content = <SensorTree onNodeSelected={this._sensorSelected} filterBy={this.state.selectedComponent} />;
+        content = <SensorTree onNodeSelected={this._sensorSelected} filterByNode={this.state.selectedComponent} onClickFilterClear={this._clearComponentSelected} />;
         title = "Sensors";
         break;
       }

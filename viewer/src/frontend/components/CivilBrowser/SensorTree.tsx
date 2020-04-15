@@ -7,40 +7,59 @@ import "./CivilBrowser.scss";
 import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
+import { SelectedNodeContext } from "./CivilBrowser";
 
 interface SensorTreeProps {
-  onNodeSelected(component: CivilComponentProps | undefined): void;
-  filterBy?: CivilComponentProps;
+  onNodeSelected(component: SelectedNodeContext | undefined): void;
+  onClickFilterClear(): void;
+  filterByNode?: SelectedNodeContext;
 }
 
 export function SensorTree(props: SensorTreeProps) {
-  const dataProvider = React.useMemo(() => new SensorDataProvider(props.filterBy), []);
-  return AbstractCivilTree({ dataProvider, ...props });
+  const dataProvider = React.useMemo(() => new SensorDataProvider(props.filterByNode), [props.filterByNode]);
+  return (
+    <>
+      {props.filterByNode && <button className="filter-button" onClick={props.onClickFilterClear}>Filtered by: {props.filterByNode.component.label}</button>}
+      {AbstractCivilTree({ dataProvider, ...props })}
+    </>);
 }
 
 class SensorDataProvider implements ITreeDataProvider {
-  private filterBy?: CivilComponentProps;
+  private filterBy?: SelectedNodeContext;
 
-  constructor(filterBy?: CivilComponentProps) {
+  constructor(filterBy?: SelectedNodeContext) {
     this.filterBy = filterBy;
   }
 
-  private getFilteredSensorList() {
+  private async getComponentAndChildren(selected: SelectedNodeContext): Promise<CivilComponentProps[]> {
+    let components: CivilComponentProps[] = [selected.component];
+    const children = await selected.dataProvider.getNodes(selected.component);
+
+    for (const child of children) {
+      const childComponent = child as CivilComponentProps;
+      const childAndChildren = await this.getComponentAndChildren({ component: childComponent, dataProvider: selected.dataProvider });
+      components = components.concat(childAndChildren);
+    }
+
+    return components;
+  }
+
+  private async getFilteredSensorList() {
     const data = CivilDataModel.get();
-    const sensors = data.getAllSensors();
 
     if (undefined === this.filterBy)
-      return sensors;
+      return data.getAllSensors();
 
-    return sensors;
+    const components = await this.getComponentAndChildren(this.filterBy);
+    return data.getSensorsForParents(components);
   }
 
   public async getNodesCount(_parent?: TreeNodeItem) {
-    return this.getFilteredSensorList().length;
+    return (await this.getFilteredSensorList()).length;
   }
 
   public async getNodes(_parent?: TreeNodeItem) {
-    const components = this.getFilteredSensorList();
+    const components = await this.getFilteredSensorList();
 
     components.sort((a: CivilComponentProps, b: CivilComponentProps) => {
       if (a.type === b.type)

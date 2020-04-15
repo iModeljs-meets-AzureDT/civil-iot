@@ -7,9 +7,10 @@ import "./CivilBrowser.scss";
 import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
+import { SelectedNodeContext } from "./CivilBrowser";
 
 interface AssetTreeProps {
-  onNodeSelected(component: CivilComponentProps | undefined): void;
+  onNodeSelected(selected: SelectedNodeContext | undefined): void;
 }
 
 export function AssetTree(props: AssetTreeProps) {

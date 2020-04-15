@@ -12,9 +12,10 @@ import {
 } from "@bentley/ui-components";
 import { CivilComponentProps, CivilDataModel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
+import { SelectedNodeContext } from "./CivilBrowser";
 
 interface AbstractCivilTreeProps {
-  onNodeSelected(component: CivilComponentProps): void;
+  onNodeSelected(selected: SelectedNodeContext): void;
   dataProvider: ITreeDataProvider;
 }
 
@@ -45,12 +46,14 @@ export function createCivilComponentTreeNode(component: CivilComponentProps, has
 }
 
 class AbstractCivilSelectionHandler extends TreeEventHandler {
-  private _onNodeSelected: (component: CivilComponentProps | undefined) => void;
+  private _onNodeSelected: (selected?: SelectedNodeContext) => void;
+  private _dataProvider: TreeDataProvider;
 
   constructor(nodeLoader: AbstractTreeNodeLoaderWithProvider<TreeDataProvider>, onNodeSelected: any) {
     super({ modelSource: nodeLoader.modelSource, nodeLoader, collapsedChildrenDisposalEnabled: true });
 
     this._onNodeSelected = onNodeSelected;
+    this._dataProvider = nodeLoader.getDataProvider();
   }
   /** Selects or deselects nodes until event is handled, handler is disposed selection replaced event occurs.  */
   public onSelectionModified(event: TreeSelectionModificationEvent) {
@@ -61,7 +64,7 @@ class AbstractCivilSelectionHandler extends TreeEventHandler {
       if (deselectedNodeItems && deselectedNodeItems.length > 0)
         this._onNodeSelected(undefined);
       else
-        this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
+        this._onNodeSelected({ component: selectedNodeItems[0] as CivilComponentProps, dataProvider: this._dataProvider as ITreeDataProvider });
     });
     // stop checkboxes handling when base selection handling is stopped
     baseSubscription?.add(subscription);
@@ -74,7 +77,7 @@ class AbstractCivilSelectionHandler extends TreeEventHandler {
     const baseSubscription = super.onSelectionReplaced(event);
     // subscribe to selection replacements and additionally handle checkboxes
     const subscription = event.replacements.subscribe(({ selectedNodeItems }) => {
-      this._onNodeSelected(selectedNodeItems[0] as CivilComponentProps);
+      this._onNodeSelected({ component: selectedNodeItems[0] as CivilComponentProps, dataProvider: this._dataProvider as ITreeDataProvider });
     });
     // stop handling when base selection handling is stopped
     baseSubscription?.add(subscription);
