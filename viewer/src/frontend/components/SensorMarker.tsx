@@ -2,34 +2,25 @@
  * Copyright (c) 2019 Bentley Systems, Incorporated. All rights reserved.
  * Licensed under the MIT License. See LICENSE.md in the project root for license terms.
  *--------------------------------------------------------------------------------------------*/
-import {
-  IModelApp,
-  Marker,
-  BeButtonEvent,
-  Cluster,
-  MarkerSet,
-  DecorateContext,
-  BeButton,
-  imageElementFromUrl,
-} from "@bentley/imodeljs-frontend";
+import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
-
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 
-const STATUS_TO_STRING = ["High", "Medium", "Normal"];
-
+const STATUS_TO_STRING = ["Normal", "Medium", "High"];
 const STATUS_COUNT = 3;
 const IMAGE_SIZE = 30;
 const MIN_CLUSTER_SIZE = 2;
+  // RGB values for:  green orange red
+const COLORS = ["#92D050", "#ED7D31", "#C00000"];
 
-/** Marker to show a saved view camera location. */
+/** Marker to show a sensor location. */
 export class SensorMarker extends Marker {
   protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
   protected _isFeatured: boolean;
 
   public get status(): number {
-    return 2; // this._component.status;
+    return 0; // this._component.status;
   }
   public get markerImage(): HTMLImageElement {
     return this._image;
@@ -57,9 +48,23 @@ export class SensorMarker extends Marker {
     title += "<b>Name:</b> " + component.label + "<br>";
     title += "<b>Type:</b> " + component.typeCode! + "<br>";
     title += "<b>Asset: </b>" + asset?.label + "<br>";
-    title += "<b>CO level: </b>" + "3.3 ppm" + "<br>";
-    title += "<b>NO2 level: </b>" + "33 ppb" + "<br>";
-
+    switch (component.type) {
+      case CivilDataComponentType.AirQualitySensor:
+        title += "<b>CO level: </b>" + "3.3 ppm" + "<br>";
+        title += "<b>NO2 level: </b>" + "33 ppb" + "<br>";
+        break;
+      case CivilDataComponentType.TemperatureSensor:
+        title += "<b>Tempertaure: </b>" + "33 degrees Celsius" + "<br>";
+        break;
+      case CivilDataComponentType.VibrationSensor:
+        title += "<b>Vibration: </b>" + ".2 g" + "<br>";
+        title += "<b>Deflection: </b>" + "4 mm" + "<br>";
+        break;
+      case CivilDataComponentType.TrafficSensor:
+        title += "<b>Vehicles: </b>" + "2,195 per hour" + "<br>";
+        title += "<b>Trucks: </b>" + "203 per hour" + "<br>";
+        break;
+    }
     const div = document.createElement("div");
     div.innerHTML = title;
     this.title = div;
@@ -71,9 +76,9 @@ export class SensorMarker extends Marker {
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = "#92D050";
+    ctx.strokeStyle = COLORS[this.status];
     ctx.fillStyle = this._isFeatured ? "cyan" : "white";
-    ctx.lineWidth = this._isFeatured ? 4 : 3;
+    ctx.lineWidth = this._isFeatured ? 5 : 3;
     ctx.arc(0, 0, this._isFeatured ? 25 : 20, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
@@ -92,12 +97,10 @@ export class SensorMarker extends Marker {
   }
 }
 
-/** A Marker used to show a cluster of saved views. */
+/** A Marker used to show a cluster of sensors. */
 class SensorClusterMarker extends Marker {
   private _cluster: Cluster<SensorMarker>;
   private _maxStatus: number = 100;
-  // RGB values for:  red orange green
-  private _colors: string[] = ["#C00000", "#ED7D31", "#92D050"];
 
   /** Create a new cluster marker */
   constructor(location: XYAndZ, size: XAndY, cluster: Cluster<SensorMarker>) {
@@ -108,16 +111,15 @@ class SensorClusterMarker extends Marker {
       if (marker.status < this._maxStatus) this._maxStatus = marker.status;
     });
     this.label = cluster.markers.length.toLocaleString();
-    this.labelColor = this._colors[this._maxStatus];
+    this.labelColor = COLORS[this._maxStatus];
     this.labelFont = "bold 16px san-serif";
-    let title = "";
     const statusCounts: number[] = new Array<number>();
     for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
     cluster.markers.forEach((marker) => {
       statusCounts[marker.status]++;
     });
 
-    title += "<table><caption><b>Status:</b></caption>";
+    let title = "<table><caption><b>Status:</b></caption>";
     for (let i: number = 0; i < STATUS_COUNT; i++) {
       if (statusCounts[i])
         title +=
@@ -137,7 +139,7 @@ class SensorClusterMarker extends Marker {
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = this._colors[this._maxStatus];   // "#92D050"
+    ctx.strokeStyle = COLORS[this._maxStatus];
     ctx.fillStyle = "white";
     ctx.lineWidth = 3;
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
