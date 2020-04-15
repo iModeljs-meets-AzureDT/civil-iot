@@ -1,7 +1,7 @@
 import { DbResult, GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
 import { BackendLoggerCategory, BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ECSqlStatement, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
-import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, RelatedElement, RenderMode, TypeDefinitionElementProps } from "@bentley/imodeljs-common";
+import { AxisAlignedBox3d, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, RelatedElement, RenderMode, TypeDefinitionElementProps, ViewFlags } from "@bentley/imodeljs-common";
 import { ObservationTypeProps } from "./IoTDevices";
 import { CompositionItemProps, RoadNetworkClassification } from "./RoadNetworkComposition";
 
@@ -295,9 +295,12 @@ export class SensorImporter {
       displayStyleId = DisplayStyle3d.insert(this._iModelDb, this._definitionModelId, `${viewName} Display Style`);
     }
     const displayStyle: DisplayStyle3d = this._iModelDb.elements.getElement<DisplayStyle3d>(displayStyleId);
-    displayStyle.settings.viewFlags.renderMode = RenderMode.SmoothShade;
-    displayStyle.settings.viewFlags.visibleEdges = true;
+    const viewFlags = new ViewFlags();
+    viewFlags.renderMode = RenderMode.SmoothShade;
+    viewFlags.visibleEdges = false;
+    viewFlags.lighting = true;
     displayStyle.settings.environment = { sky: { display: true } };
+    displayStyle.settings.viewFlags = viewFlags;
     displayStyle.update();
     // Insert the ViewDefinition
     const viewId = OrthographicViewDefinition.insert(this._iModelDb, this._definitionModelId, viewName, modelSelectorId, categorySelectorId, displayStyleId, viewExtents, StandardViewIndex.Iso);
