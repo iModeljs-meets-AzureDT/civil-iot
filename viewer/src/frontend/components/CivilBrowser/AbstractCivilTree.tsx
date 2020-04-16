@@ -13,9 +13,11 @@ import {
 import { CivilComponentProps, CivilDataModel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
 import { SelectedNodeContext } from "./CivilBrowser";
+import { XAndY } from "@bentley/geometry-core";
 
 interface AbstractCivilTreeProps {
   onNodeSelected(selected: SelectedNodeContext): void;
+  onMeatballClicked(pos: XAndY): void;
   dataProvider: ITreeDataProvider;
 }
 
@@ -95,7 +97,14 @@ class AbstractCivilTreeImageLoader implements ITreeImageLoader {
 const abstractCivilTreeImageLoader = new AbstractCivilTreeImageLoader();
 
 function abstractCivilTreeNodeRenderer(props: TreeNodeRendererProps) {
-  return <TreeNodeRenderer {...props} imageLoader={abstractCivilTreeImageLoader} />;
+  return (
+    <>
+      <div className="civiltree-node-wrapper">
+        <TreeNodeRenderer {...props} imageLoader={abstractCivilTreeImageLoader} />
+        <button className="meatball-button" onClick={(e: React.MouseEvent) => { console.log(e.pageX, e.pageY); /* How to I call the tree's props.onMeatballClicked here? */ }} />
+      </div>
+    </>
+  );
 }
 
 function abstractCivilTreeRenderer(props: TreeRendererProps) {

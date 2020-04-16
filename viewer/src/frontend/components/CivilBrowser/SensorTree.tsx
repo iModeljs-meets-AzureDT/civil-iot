@@ -8,11 +8,13 @@ import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
 import { SelectedNodeContext } from "./CivilBrowser";
+import { XAndY } from "@bentley/geometry-core";
 
 interface SensorTreeProps {
   onNodeSelected(component: SelectedNodeContext | undefined): void;
   onClickFilterClear(): void;
   filterByNode?: SelectedNodeContext;
+  onMeatballClicked(pos: XAndY): void;
 }
 
 export function SensorTree(props: SensorTreeProps) {

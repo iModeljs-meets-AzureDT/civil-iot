@@ -12,9 +12,10 @@ import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
 import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { AssetTree } from "./AssetTree";
-import { Range3d } from "@bentley/geometry-core";
+import { Range3d, XAndY } from "@bentley/geometry-core";
 import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 import { ITreeDataProvider } from "@bentley/ui-components";
+import { PopupMenu, PopupMenuEntry } from "./PopupMenu";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -84,7 +85,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     await this._componentSelected();
   }
 
-  public markerClicked  = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+  public markerClicked = async (sensor: CivilComponentProps | undefined): Promise<void> => {
     await this._sensorSelected2(sensor, true);
     this.setState({ mode: CivilBrowserMode.Sensors });
   }
@@ -120,6 +121,26 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     // this.props.imodel.selectionSet.replace(sensor.id);
   }
 
+  /** When the user clicks on the marker, we will show a small popup menu */
+  private showPopupMenu(cursorPoint: XAndY) {
+    const menuEntries: PopupMenuEntry[] = [];
+
+    menuEntries.push({ label: "Menu Option 1", onPicked: this.popupCallback });
+    menuEntries.push({ label: "Menu Option 2", onPicked: this.popupCallback });
+
+    const offset = 8;
+    PopupMenu.onPopupMenuEvent.emit({
+      menuVisible: true,
+      menuX: cursorPoint.x - offset,
+      menuY: cursorPoint.y - offset,
+      entries: menuEntries,
+    });
+  }
+
+  private popupCallback(_entry: PopupMenuEntry) {
+
+  }
+
   public render() {
     let content;
     let title;
@@ -133,17 +154,17 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.ModelBreakdown: {
-        content = <ModelBreakdownTree onNodeSelected={this._componentSelected} />;
+        content = <ModelBreakdownTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Model breakdown";
         break;
       }
       case CivilBrowserMode.Assets: {
-        content = <AssetTree onNodeSelected={this._componentSelected} />;
+        content = <AssetTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Assets";
         break;
       }
       case CivilBrowserMode.Sensors: {
-        content = <SensorTree onNodeSelected={this._sensorSelected} filterByNode={this.state.selectedComponent} onClickFilterClear={this._clearComponentSelected} />;
+        content = <SensorTree onNodeSelected={this._sensorSelected} filterByNode={this.state.selectedComponent} onClickFilterClear={this._clearComponentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Sensors";
         break;
       }

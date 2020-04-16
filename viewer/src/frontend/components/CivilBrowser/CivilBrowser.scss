@@ -64,6 +64,40 @@
   }
 }
 
+.civiltree-node-wrapper {
+  display: flex;
+
+  .meatball-button {
+    position: absolute;
+    right: 0px;
+    margin: 5px;
+    border-style: none;
+    background: none;
+    display: none;
+  }
+
+  .meatball-button:focus {
+    border-style: none;
+  }
+
+  .meatball-button::after {
+    content: "\f141";
+    color: grey;
+    right: 6px;
+    top: 6px;
+    font-family: "Font Awesome 5 Free";
+    font-style: normal;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-left: .5rem;
+  }
+}
+
+.civiltree-node-wrapper:hover .meatball-button {
+  display:block;
+}
+
 .filter-button {
   position: relative;
   color: black;
