@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
+import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
+import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
 
 const STATUS_TO_STRING = ["Normal", "Medium", "High"];
 const STATUS_COUNT = 3;
@@ -84,7 +86,34 @@ export class SensorMarker extends Marker {
     ctx.stroke();
   }
 
+  /** Open an image specified as a data URL in a new window/tab. Works around differences between browsers and Electron.
+   * @param url The base64-encoded image URL.
+   * @param title An optional title to apply to the new window.
+   * @beta
+   */
+  public openImageDataUrlInNewWindow(url: string, title?: string): void {
+    const newWindow = window.open(url, title);
+    newWindow!.focus();
+    if (!ElectronRpcConfiguration.isElectron) {
+      newWindow!.onload = () => {
+        const div = newWindow!.document.createElement("div");
+        div.innerHTML = "<img src='" + url + "'/>";
+        newWindow!.document.body.replaceWith(div);
+        if (undefined !== title)
+          newWindow!.document.title = title;
+      };
+    }
+  }
+
+
   public onMouseButton(ev: BeButtonEvent): boolean {
+    if (this._component.type === CivilDataComponentType.TrafficCamera) {
+      const data = CivilDataModel.get();
+      const asset = data.getComponentForId(this._component.composingId);
+      this.openImageDataUrlInNewWindow("traffic-cam-image.jpg", asset!.label);
+      return true;
+    }
+
     if (
       BeButton.Data !== ev.button ||
       !ev.isDown ||
@@ -92,7 +121,9 @@ export class SensorMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
-    ev.viewport!.iModel.selectionSet.replace(this._component.id);
+    // tslint:disable-next-line: no-floating-promises
+    ((IModelApp as any).civilBrowser as CivilBrowser).markerClicked(this._component);
+    // ev.viewport!.iModel.selectionSet.replace(this._component.id);
     return true; // Don't allow clicks to be sent to active tool...
   }
 }
@@ -155,6 +186,7 @@ class SensorClusterMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
+
     const elementIds: any = [];
     const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
@@ -203,6 +235,7 @@ export class SensorMarkerSetDecoration {
       CivilDataComponentType.TemperatureSensor,
       CivilDataComponentType.VibrationSensor,
       CivilDataComponentType.TrafficSensor,
+      CivilDataComponentType.TrafficCamera,
     ];
     const loads: any = [];
     typeIndex.forEach((type) => {

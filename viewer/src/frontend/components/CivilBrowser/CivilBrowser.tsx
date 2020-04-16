@@ -46,6 +46,8 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     this.state = {
       mode: CivilBrowserMode.MainMenu,
     };
+    // Save the instance on IModelApp so it can be accessed from sensor markers
+    (IModelApp as any).civilBrowser = this;
   }
 
   private _componentSelected = async (selected?: SelectedNodeContext): Promise<void> => {
@@ -66,7 +68,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
       const margin = 0.25;
       const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
-      IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
+      await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
 
       const data = CivilDataModel.get();
       const components = data.getSensorsForParent(component.id);
@@ -79,18 +81,27 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
   }
 
   private _clearComponentSelected = async (): Promise<void> => {
-    this._componentSelected();
+    await this._componentSelected();
   }
 
-  private _sensorSelected = async (selected: SelectedNodeContext | undefined): Promise<void> => {
-    if (!selected) {
+  public markerClicked  = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+    await this._sensorSelected2(sensor, true);
+    this.setState({ mode: CivilBrowserMode.Sensors });
+  }
+
+  private _sensorSelected = async (selected: SelectedNodeContext | undefined, skipZoom?: boolean): Promise<void> => {
+    const _sensor = selected ? selected.component : undefined;
+    await this._sensorSelected2(_sensor, skipZoom);
+
+  }
+
+  private _sensorSelected2 = async (sensor: CivilComponentProps | undefined, skipZoom?: boolean): Promise<void> => {
+    if (!sensor) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
       return;
     }
-
-    const sensor = selected.component;
 
     const data = CivilDataModel.get();
     const assets = data.getComponentsByIds([sensor.composingId]);
@@ -100,7 +111,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     const components = data.getSensorsOfSameParent(sensor);
     SensorMarkerSetDecoration.show(components, sensor.id);
 
-    if (undefined !== sensor.position) {
+    if (!skipZoom && undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);
       IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });

@@ -7,7 +7,7 @@ import { DataLink, ClassMapQueryRow, CompositionItemQueryRow, SensorQueryRow } f
 import { Point3d } from "@bentley/geometry-core";
 
 export enum CivilDataComponentType {
-  Interstate, Highway, LocalRoad, Roadway, Bridge, Tunnel, RoadSegment, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor,
+  Interstate, Highway, LocalRoad, Roadway, Bridge, Tunnel, RoadSegment, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor, TrafficCamera,
 }
 
 export interface CivilComponentProps {
@@ -84,6 +84,8 @@ export class CivilDataModel {
         return CivilDataComponentType.VibrationSensor;
       case "Vehicle Counter":
         return CivilDataComponentType.TrafficSensor;
+      case "Traffic Camera":
+        return CivilDataComponentType.TrafficCamera;
     }
   }
 
@@ -129,6 +131,7 @@ export class CivilDataModel {
       case CivilDataComponentType.TemperatureSensor: return "temperature-sensor.png";
       case CivilDataComponentType.VibrationSensor: return "vibration-sensor.SVG";
       case CivilDataComponentType.TrafficSensor: return "traffic-sensor.svg";
+      case CivilDataComponentType.TrafficCamera: return "traffic-camera.svg";
     }
 
     return "";

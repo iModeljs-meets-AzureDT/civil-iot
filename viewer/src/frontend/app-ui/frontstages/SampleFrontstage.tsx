@@ -26,7 +26,6 @@ import {
   UiFramework,
   IModelConnectedViewSelector,
   IModelConnectedNavigationWidget,
-  ToolButton,
   PopupButton,
   PopupButtonChildrenRenderPropArgs,
 } from "@bentley/ui-framework";
@@ -39,7 +38,6 @@ import { AppUi } from "../AppUi";
 import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
-import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { CivilDataModel } from "../../api/CivilDataModel";
 import { TerrainSettings } from "../../components/TerrainSettings/TerrainSettings";
 
