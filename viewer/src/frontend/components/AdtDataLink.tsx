@@ -33,16 +33,16 @@ export class AdtDataLink {
       // handle redirect response or error
     });
 
-    var loginRequest = {
+    const loginRequest = {
       scopes: [AdtAppId + "/.default"] // optional Array<string>
     };
 
     try {
       await msalInstance.loginPopup(loginRequest)
-      var accessToken;
+      let accessToken: any;
       // if the user is already logged in you can acquire a token
       if (msalInstance.getAccount()) {
-        var tokenRequest = {
+        const tokenRequest = {
           scopes: [AdtAppId + "/.default"]
         };
         try {

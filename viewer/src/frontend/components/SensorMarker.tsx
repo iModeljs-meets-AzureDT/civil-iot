@@ -2,11 +2,13 @@
  * Copyright (c) 2019 Bentley Systems, Incorporated. All rights reserved.
  * Licensed under the MIT License. See LICENSE.md in the project root for license terms.
  *--------------------------------------------------------------------------------------------*/
-import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl } from "@bentley/imodeljs-frontend";
+import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl, ScreenViewport } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
+import { BeDuration } from "@bentley/bentleyjs-core";
 import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
+import { AdtDataLink } from "../components/AdtDataLink";
 
 const STATUS_TO_STRING = ["Normal", "Medium", "High"];
 const STATUS_COUNT = 3;
@@ -20,12 +22,50 @@ export class SensorMarker extends Marker {
   protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
   protected _isFeatured: boolean;
+  protected _doTooltipPolling: boolean;
 
   public get status(): number {
     return 0; // this._component.status;
   }
   public get markerImage(): HTMLImageElement {
     return this._image;
+  }
+
+  public async updateTooltip(component: CivilComponentProps) {
+    if ((IModelApp as any).adtDataLink === undefined)
+      (IModelApp as any).adtDataLink = new AdtDataLink();
+
+    const adtDataLink = (IModelApp as any).adtDataLink;
+    if (!adtDataLink.getToken())
+      await adtDataLink.login();
+
+    const data = CivilDataModel.get();
+    const asset = data.getComponentForId(component.composingId);
+    const sensorData: any = await adtDataLink.fetchDataForNode(component.label);
+
+    let title = "";
+    title += "<b>Name:</b> " + component.label + "<br>";
+    title += "<b>Type:</b> " + component.typeCode! + "<br>";
+    title += "<b>Asset: </b>" + asset?.label + "<br>";
+    switch (component.type) {
+      case CivilDataComponentType.AirQualitySensor:
+      case CivilDataComponentType.TemperatureSensor:
+      case CivilDataComponentType.VibrationSensor:
+      case CivilDataComponentType.TrafficSensor:
+        if (sensorData && sensorData.hasOwnProperty("observationLabel1")) {
+          const value1: string = sensorData.observationValue1.toFixed(2);
+          title += "<b>" + sensorData.observationLabel1 + ": </b>" + value1 + " " + sensorData.observationUnit1 + "<br>";
+        }
+        if (sensorData && sensorData.hasOwnProperty("observationLabel2")) {
+          const value2: string = sensorData.observationValue2.toFixed(2);
+          title += "<b>" + sensorData.observationLabel2 + ": </b>" + value2 + " " + sensorData.observationUnit2 + "<br>";
+        }
+        break;
+    }
+
+    const div = document.createElement("div");
+    div.innerHTML = title;
+    this.title = div;
   }
 
   /** Create a new SensorMarker */
@@ -39,40 +79,44 @@ export class SensorMarker extends Marker {
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
 
+    this._doTooltipPolling = false;
     this._isFeatured = isFeatured;
     this._image = image;
     this.setImage(image);
 
-    const data = CivilDataModel.get();
-    const asset = data.getComponentForId(component.composingId);
-
-    let title = "";
-    title += "<b>Name:</b> " + component.label + "<br>";
-    title += "<b>Type:</b> " + component.typeCode! + "<br>";
-    title += "<b>Asset: </b>" + asset?.label + "<br>";
-    switch (component.type) {
-      case CivilDataComponentType.AirQualitySensor:
-        title += "<b>CO level: </b>" + "3.3 ppm" + "<br>";
-        title += "<b>NO2 level: </b>" + "33 ppb" + "<br>";
-        break;
-      case CivilDataComponentType.TemperatureSensor:
-        title += "<b>Tempertaure: </b>" + "33 degrees Celsius" + "<br>";
-        break;
-      case CivilDataComponentType.VibrationSensor:
-        title += "<b>Vibration: </b>" + ".2 g" + "<br>";
-        title += "<b>Deflection: </b>" + "4 mm" + "<br>";
-        break;
-      case CivilDataComponentType.TrafficSensor:
-        title += "<b>Vehicles: </b>" + "2,195 per hour" + "<br>";
-        title += "<b>Trucks: </b>" + "203 per hour" + "<br>";
-        break;
-    }
-    const div = document.createElement("div");
-    div.innerHTML = title;
-    this.title = div;
-
     this.setScaleFactor({ low: 0.2, high: 1.4 }); // make size 20% at back of frustum and 140% at front of frustum (if camera is on)
     this._component = component;
+  }
+
+  /** Called when the mouse pointer moves over this Marker */
+  public onMouseMove(_ev: BeButtonEvent): void {
+  }
+
+  /** Called when the mouse pointer leaves this Marker. */
+  public onMouseLeave() {
+    super.onMouseLeave();
+    this._doTooltipPolling = false;
+  }
+
+  private async updateTooltipLoop(vp: ScreenViewport, viewPoint: Point3d) {
+    while (this._doTooltipPolling === true) {
+      // tslint:disable-next-line: no-floating-promises
+      this.updateTooltip(this._component);
+      if (this.title)
+        vp.openToolTip(this.title, viewPoint, this.tooltipOptions);
+      await BeDuration.wait(1000);
+    }
+  }
+
+  /** Called when the mouse pointer enters this Marker. */
+  public onMouseEnter(ev: BeButtonEvent) {
+    this._doTooltipPolling = true;
+    const viewPoint: Point3d = ev.viewPoint;
+    const vp: ScreenViewport = ev.viewport as ScreenViewport;
+    super.onMouseEnter(ev);
+
+    // tslint:disable-next-line: no-floating-promises
+    this.updateTooltipLoop(vp, viewPoint);
   }
 
   /** Show the cluster as a white circle with an outline */
