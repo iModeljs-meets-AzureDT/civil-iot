@@ -17,6 +17,7 @@ interface TerrainSettingsProps extends CommonProps {
 
 interface TerrainSettingsState {
   showPopup: boolean;
+  isLiveDataActive: boolean;
   mapIsOn: boolean;
   terrainIsOn: boolean;
   transparency: number;
@@ -39,7 +40,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       transparency = false === backgroundMap.transparency ? 0 : backgroundMap.transparency;
     }
 
-    this.state = { showPopup: false, mapIsOn, terrainIsOn, transparency };
+    this.state = { showPopup: false, isLiveDataActive: false, mapIsOn, terrainIsOn, transparency };
   }
 
   private _onChangeTransparency = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,9 +85,15 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
     this.setState({ terrainIsOn: turnOn });
   }
 
+  private _onToggleLiveData = (turnOn: boolean) => {
+    alert("Turn " + turnOn ? "ON" : "OFF" + " live data");
+  }
+
   public render() {
     return (
       <div className="terrain-settings">
+        <span>Show Live Data</span>
+        <Toggle isOn={this.state.isLiveDataActive} onChange={this._onToggleLiveData} />
         <span>Show Map</span>
         <Toggle isOn={this.state.mapIsOn} onChange={this._onToggleMap} />
         <span>Show Terrain</span>
