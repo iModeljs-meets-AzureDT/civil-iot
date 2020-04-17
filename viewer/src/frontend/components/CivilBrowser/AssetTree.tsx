@@ -12,7 +12,7 @@ import { XAndY } from "@bentley/geometry-core";
 
 interface AssetTreeProps {
   onNodeSelected(selected: SelectedNodeContext | undefined): void;
-  onMeatballClicked(pos: XAndY): void;
+  onMeatballClicked(pos: XAndY, nodeId: string): void;
 }
 
 export function AssetTree(props: AssetTreeProps) {

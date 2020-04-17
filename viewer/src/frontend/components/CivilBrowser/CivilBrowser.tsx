@@ -121,12 +121,18 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     // this.props.imodel.selectionSet.replace(sensor.id);
   }
 
-  /** When the user clicks on the marker, we will show a small popup menu */
-  private showPopupMenu(cursorPoint: XAndY) {
+  /** When the user clicks on the meatball button, we will show a small popup menu */
+  private showPopupMenu(cursorPoint: XAndY, nodeId: string) {
     const menuEntries: PopupMenuEntry[] = [];
 
-    menuEntries.push({ label: "Menu Option 1", onPicked: this.popupCallback });
-    menuEntries.push({ label: "Menu Option 2", onPicked: this.popupCallback });
+    const data = CivilDataModel.get();
+    const component = data.getComponentForId(nodeId);
+
+    const menuEntry1 = { label: "Menu Option 1", component, onPicked: popupCallback };
+    const menuEntry2 = { label: "Menu Option 2", component, onPicked: popupCallback };
+
+    menuEntries.push(menuEntry1);
+    menuEntries.push(menuEntry2);
 
     const offset = 8;
     PopupMenu.onPopupMenuEvent.emit({
@@ -135,10 +141,6 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       menuY: cursorPoint.y - offset,
       entries: menuEntries,
     });
-  }
-
-  private popupCallback(_entry: PopupMenuEntry) {
-
   }
 
   public render() {
@@ -180,3 +182,8 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     );
   }
 }
+
+const popupCallback = (entry: PopupMenuEntry) => {
+  const component = (entry as any).component as CivilComponentProps;
+  console.log("Got click on popup for node " + component.label + " " + component.type);
+};

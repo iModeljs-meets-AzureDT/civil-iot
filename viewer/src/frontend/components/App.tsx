@@ -24,6 +24,7 @@ import { AppLoggerCategory } from "../../common/configuration";
 // make sure webfont brings in the icons and css files.
 import "@bentley/icons-generic-webfont/dist/bentley-icons-generic-webfont.css";
 import "./App.css";
+import { PopupMenu } from "./CivilBrowser/PopupMenu";
 
 /** React state of the App component */
 export interface AppState {
@@ -326,7 +327,10 @@ class IModelComponents extends React.PureComponent {
 
   public render() {
     return (
-      <ConfigurableUiContent appBackstage={<AppBackstageComposer />} />
+      <>
+        <ConfigurableUiContent appBackstage={<AppBackstageComposer />} />
+        <PopupMenu />
+      </>
     );
   }
 }

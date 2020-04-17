@@ -17,7 +17,7 @@ import { XAndY } from "@bentley/geometry-core";
 
 interface AbstractCivilTreeProps {
   onNodeSelected(selected: SelectedNodeContext): void;
-  onMeatballClicked(pos: XAndY): void;
+  onMeatballClicked(pos: XAndY, nodeId: string): void;
   dataProvider: ITreeDataProvider;
 }
 
@@ -36,7 +36,7 @@ export function AbstractCivilTree(props: AbstractCivilTreeProps) {
         treeEvents={eventHandler}
         visibleNodes={visibleNodes}
         iconsEnabled={true}
-        treeRenderer={abstractCivilTreeRenderer}
+        treeRenderer={useAbstractCivilTreeRenderer(props.onMeatballClicked)}
       />
     </div>
   </>;
@@ -96,17 +96,31 @@ class AbstractCivilTreeImageLoader implements ITreeImageLoader {
 }
 const abstractCivilTreeImageLoader = new AbstractCivilTreeImageLoader();
 
-function abstractCivilTreeNodeRenderer(props: TreeNodeRendererProps) {
-  return (
-    <>
-      <div className="civiltree-node-wrapper">
-        <TreeNodeRenderer {...props} imageLoader={abstractCivilTreeImageLoader} />
-        <button className="meatball-button" onClick={(e: React.MouseEvent) => { console.log(e.pageX, e.pageY); /* How to I call the tree's props.onMeatballClicked here? */ }} />
-      </div>
-    </>
-  );
+function createAbstractCivilTreeNodeRenderer(
+  onMeatballClicked: (pos: XAndY, nodeId: string) => void,
+) {
+  return (props: TreeNodeRendererProps) => {
+    return (
+      <>
+        <div className="civiltree-node-wrapper">
+          <TreeNodeRenderer {...props} imageLoader={abstractCivilTreeImageLoader} />
+          <button
+            className="meatball-button"
+            onClick={(e: React.MouseEvent) => { onMeatballClicked({ x: e.pageX, y: e.pageY }, props.node.id); }} />
+        </div>
+      </>
+    );
+  };
 }
 
-function abstractCivilTreeRenderer(props: TreeRendererProps) {
-  return <TreeRenderer {...props} nodeRenderer={abstractCivilTreeNodeRenderer} />;
+function useAbstractCivilTreeRenderer(
+  onMeatballClicked: (pos: XAndY, nodeId: string) => void,
+) {
+  const nodeRenderer = React.useCallback(createAbstractCivilTreeNodeRenderer(onMeatballClicked), [onMeatballClicked]);
+
+  return React.useCallback((props: TreeRendererProps) => {
+    return (
+      <TreeRenderer {...props} nodeRenderer={nodeRenderer} />
+    );
+  }, [nodeRenderer]);
 }
