@@ -1,4 +1,4 @@
-import { DbResult, GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { DbResult, Guid, GuidString, Id64, Id64String, IModelStatus, Logger, LogLevel } from "@bentley/bentleyjs-core";
 import { Box, Cone, Point3d, StandardViewIndex, Vector3d, XYZProps } from "@bentley/geometry-core";
 import { BackendLoggerCategory, BackendRequestContext, CategorySelector, DefinitionModel, DisplayStyle3d, ECSqlStatement, ElementGroupsMembers, ElementOwnsChildElements, GeometricElement3dHasTypeDefinition, GroupModel, IModelDb, IModelJsFs, ModelSelector, OrthographicViewDefinition, PhysicalModel, SpatialCategory, Subject } from "@bentley/imodeljs-backend";
 import { AxisAlignedBox3d, BackgroundMapSettings, Code, CodeScopeSpec, ColorDef, GeometricElement3dProps, GeometryStreamBuilder, GeometryStreamProps, IModel, IModelError, RelatedElement, RenderMode, TypeDefinitionElementProps, ViewFlags } from "@bentley/imodeljs-common";
@@ -158,12 +158,12 @@ export class SensorImporter {
     return this._iModelDb.elements.queryElementIdByCode(new Code({ spec: this._physicalObjectCodeSpecId, scope: IModel.rootSubjectId, value: codeValue }));
   }
 
-  private insertSensorType(name: string, federationGuid: GuidString, observationTypeIdsOrCodes: Id64String[] | string[]): Id64String {
+  private insertSensorType(name: string, federationGuid: GuidString | undefined, observationTypeIdsOrCodes: Id64String[] | string[]): Id64String {
     const sensorTypeProps: TypeDefinitionElementProps = {
       classFullName: "IoTDevices:SensorType",
       model: this._definitionModelId,
       code: { spec: this._sensorTypeCodeSpecId, scope: this._definitionModelId, value: name },
-      federationGuid,
+      federationGuid: federationGuid ? federationGuid : Guid.createValue(),
     };
     const sensorTypeId: Id64String = this._iModelDb.elements.insertElement(sensorTypeProps);
     observationTypeIdsOrCodes.forEach((idOrCode: Id64String | string) => {
