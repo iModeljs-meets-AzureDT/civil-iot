@@ -81,7 +81,10 @@ export class AdtExporter {
 
   public exportAll(): void {
     this.exportAdtTypes();
-    this.exportAdtInstances();
+    const adtInstances: AdtInstanceProps[] = this.createAdtInstances();
+    this.exportAdtInstances(adtInstances);
+    this.exportAdtInstancesScript(adtInstances, true);
+    this.exportAdtInstancesScript(adtInstances, false);
   }
 
   public exportAdtTypes(): void {
@@ -135,12 +138,12 @@ export class AdtExporter {
     });
   }
 
-  public exportAdtInstances(isAdd: boolean = true): void {
-    // write adtInstances as JSON
-    const adtInstances: AdtInstanceProps[] = this.createAdtInstances();
+  private exportAdtInstances(adtInstances: AdtInstanceProps[]): void {
     FileSystemUtils.writeJsonFile(this.outputDir, "adt-instances.json", adtInstances);
-    // write create scripts
-    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `create-adt-instances.txt`);
+  }
+
+  public exportAdtInstancesScript(adtInstances: AdtInstanceProps[], isAdd: boolean): void {
+    const outputFileName: string = FileSystemUtils.prepareFile(this.outputDir, `${isAdd ? "create" : "replace"}-adt-instances.txt`);
     adtInstances.forEach((adtInstance: AdtInstanceProps) => {
       FileSystemUtils.writeLine(outputFileName, this.buildUploadAdtInstanceUrl(adtInstance));
       FileSystemUtils.writeLine(outputFileName, JSON.stringify(this.buildMetaDataString(adtInstance)));
@@ -183,7 +186,7 @@ export class AdtExporter {
         const sensorInstance: AdtSensorInstanceProps = this.createAdtInstance(sensorProps) as AdtSensorInstanceProps;
         sensorInstance.type = sensorTypeProps.code.value!;
         if (sensorTypeProps.federationGuid && sensorProps?.jsonProperties?.iot?.sensorTypeIndex) {
-          sensorInstance.deviceId = `${this.getSimulationId()}.${sensorTypeProps.federationGuid}.${sensorProps.jsonProperties.iot.sensorTypeIndex}`;
+          sensorInstance.deviceId = `${sensorTypeProps.federationGuid}.${sensorProps.jsonProperties.iot.sensorTypeIndex}`;
         }
         const observedElement: Element | undefined = this.queryObservedElement(sensorProps.id!);
         if (undefined !== observedElement) {
@@ -227,11 +230,6 @@ export class AdtExporter {
       throw new IModelError(IModelStatus.InvalidCode, "A CodeValue is required for an ADT instance");
     }
     return elementProps.code.value;
-  }
-
-  private getSimulationId(): GuidString {
-    // the identifier for the simulation in IoT Hub
-    return "6a6cab04-c18f-4e37-a6e4-94928e32d36f";
   }
 
   private queryObservedElement(sensorId: Id64String): Element | undefined {
