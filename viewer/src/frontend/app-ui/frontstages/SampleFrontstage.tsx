@@ -26,7 +26,6 @@ import {
   UiFramework,
   IModelConnectedViewSelector,
   IModelConnectedNavigationWidget,
-  ToolButton,
   PopupButton,
   PopupButtonChildrenRenderPropArgs,
 } from "@bentley/ui-framework";
@@ -39,9 +38,9 @@ import { AppUi } from "../AppUi";
 import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
-import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { CivilDataModel } from "../../api/CivilDataModel";
 import { TerrainSettings } from "../../components/TerrainSettings/TerrainSettings";
+import { AdtDataLink } from "../../components/AdtDataLink";
 
 /**
  * Sample Frontstage for Civil IoT Viewer application
@@ -56,6 +55,8 @@ export class SampleFrontstage extends FrontstageProvider {
 
   // Content group for both layouts
   private _contentGroup: ContentGroup;
+
+  private _adtDataLink: AdtDataLink = new AdtDataLink();
 
   constructor(public viewStates: ViewState[]) {
     super();
@@ -91,6 +92,14 @@ export class SampleFrontstage extends FrontstageProvider {
         },
       ],
     });
+
+    this.runAdtDataLinkExample();
+  }
+
+  private async runAdtDataLinkExample() {
+    if (!this._adtDataLink.getToken()) await this._adtDataLink.login();
+    const nodeData = await this._adtDataLink.fetchDataForNode("BR2-SB");
+    console.log("Data for BR2-SB: " + JSON.stringify(nodeData));
   }
 
   /** Define the Frontstage properties */

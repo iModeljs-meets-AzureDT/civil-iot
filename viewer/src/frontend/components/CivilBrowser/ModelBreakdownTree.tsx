@@ -7,9 +7,12 @@ import "./CivilBrowser.scss";
 import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
 import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
+import { SelectedNodeContext } from "./CivilBrowser";
+import { XAndY } from "@bentley/geometry-core";
 
 interface ModelBreakdownTreeProps {
-  onNodeSelected(component: CivilComponentProps): void;
+  onNodeSelected(selected: SelectedNodeContext): void;
+  onMeatballClicked(pos: XAndY): void;
 }
 
 export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {

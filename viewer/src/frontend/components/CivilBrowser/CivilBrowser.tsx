@@ -12,8 +12,10 @@ import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
 import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
 import { AssetTree } from "./AssetTree";
-import { Range3d } from "@bentley/geometry-core";
+import { Range3d, XAndY } from "@bentley/geometry-core";
 import { EmphasizeAssets } from "../../api/EmphasizeAssets";
+import { ITreeDataProvider } from "@bentley/ui-components";
+import { PopupMenu, PopupMenuEntry } from "./PopupMenu";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -22,9 +24,14 @@ export enum CivilBrowserMode {
   Sensors = "4",
 }
 
+export interface SelectedNodeContext {
+  component: CivilComponentProps;    // The node that is selected
+  dataProvider: ITreeDataProvider;    // For getting context about it's parent or children
+}
+
 interface CivilBrowserState {
   mode: CivilBrowserMode;
-  selectedComponent?: CivilComponentProps;
+  selectedComponent?: SelectedNodeContext;
 }
 
 interface CivilBrowserProps {
@@ -40,12 +47,14 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     this.state = {
       mode: CivilBrowserMode.MainMenu,
     };
+    // Save the instance on IModelApp so it can be accessed from sensor markers
+    (IModelApp as any).civilBrowser = this;
   }
 
-  private _componentSelected = async (component: CivilComponentProps | undefined): Promise<void> => {
+  private _componentSelected = async (selected?: SelectedNodeContext): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 
-    if (component === undefined) {
+    if (undefined === selected) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
@@ -53,26 +62,41 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
-    if (undefined === component.geometricId) {
-      // alert("No geometryId");
-      return;
+    const component = selected.component;
+
+    if (undefined !== component.geometricId) {
+      EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
+
+      const margin = 0.25;
+      const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
+      await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
+
+      const data = CivilDataModel.get();
+      const components = data.getSensorsForParent(component.id);
+      SensorMarkerSetDecoration.show(components);
+
+      // this.props.imodel.selectionSet.replace(component.geometricId);
     }
 
-    EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
-
-    const margin = 0.25;
-    const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
-    IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
-
-    const data = CivilDataModel.get();
-    const components = data.getSensorsForParent(component.id);
-    SensorMarkerSetDecoration.show(components);
-
-    this.setState({ selectedComponent: component });
-    // this.props.imodel.selectionSet.replace(component.geometricId);
+    this.setState({ selectedComponent: selected });
   }
 
-  private _sensorSelected = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+  private _clearComponentSelected = async (): Promise<void> => {
+    await this._componentSelected();
+  }
+
+  public markerClicked = async (sensor: CivilComponentProps | undefined): Promise<void> => {
+    await this._sensorSelected2(sensor, true);
+    this.setState({ mode: CivilBrowserMode.Sensors });
+  }
+
+  private _sensorSelected = async (selected: SelectedNodeContext | undefined, skipZoom?: boolean): Promise<void> => {
+    const _sensor = selected ? selected.component : undefined;
+    await this._sensorSelected2(_sensor, skipZoom);
+
+  }
+
+  private _sensorSelected2 = async (sensor: CivilComponentProps | undefined, skipZoom?: boolean): Promise<void> => {
     if (!sensor) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
@@ -85,16 +109,36 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
     EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
 
-    const components = data.getSensorsOfParent(sensor);
+    const components = data.getSensorsOfSameParent(sensor);
     SensorMarkerSetDecoration.show(components, sensor.id);
 
-    if (undefined !== sensor.position) {
+    if (!skipZoom && undefined !== sensor.position) {
       const range = Range3d.create(sensor.position);
       range.expandInPlace(20);
       IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
     }
 
     // this.props.imodel.selectionSet.replace(sensor.id);
+  }
+
+  /** When the user clicks on the marker, we will show a small popup menu */
+  private showPopupMenu(cursorPoint: XAndY) {
+    const menuEntries: PopupMenuEntry[] = [];
+
+    menuEntries.push({ label: "Menu Option 1", onPicked: this.popupCallback });
+    menuEntries.push({ label: "Menu Option 2", onPicked: this.popupCallback });
+
+    const offset = 8;
+    PopupMenu.onPopupMenuEvent.emit({
+      menuVisible: true,
+      menuX: cursorPoint.x - offset,
+      menuY: cursorPoint.y - offset,
+      entries: menuEntries,
+    });
+  }
+
+  private popupCallback(_entry: PopupMenuEntry) {
+
   }
 
   public render() {
@@ -110,17 +154,17 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.ModelBreakdown: {
-        content = <ModelBreakdownTree onNodeSelected={this._componentSelected} />;
+        content = <ModelBreakdownTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Model breakdown";
         break;
       }
       case CivilBrowserMode.Assets: {
-        content = <AssetTree onNodeSelected={this._componentSelected} />;
+        content = <AssetTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Assets";
         break;
       }
       case CivilBrowserMode.Sensors: {
-        content = <SensorTree onNodeSelected={this._sensorSelected} filterBy={this.state.selectedComponent} />;
+        content = <SensorTree onNodeSelected={this._sensorSelected} filterByNode={this.state.selectedComponent} onClickFilterClear={this._clearComponentSelected} onMeatballClicked={this.showPopupMenu} />;
         title = "Sensors";
         break;
       }

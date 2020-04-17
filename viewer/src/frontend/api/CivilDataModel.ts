@@ -7,7 +7,7 @@ import { DataLink, ClassMapQueryRow, CompositionItemQueryRow, SensorQueryRow } f
 import { Point3d } from "@bentley/geometry-core";
 
 export enum CivilDataComponentType {
-  Interstate, Highway, LocalRoad, Roadway, Bridge, Tunnel, RoadSegment, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor,
+  Interstate, Highway, LocalRoad, Roadway, Bridge, Tunnel, RoadSegment, Ramp, GenericSensor, AirQualitySensor, TemperatureSensor, VibrationSensor, TrafficSensor, TrafficCamera,
 }
 
 export interface CivilComponentProps {
@@ -15,6 +15,7 @@ export interface CivilComponentProps {
   label: string;                        // UI label for this component
   composingId: string;                  // Id of the 'parent' component for the UI tree
   type: CivilDataComponentType;         // for icons, etc.
+  typeCode?: string;                    // UI label for this component
   geometricId?: string;                 // element with geometry for this component
   position?: Point3d;                   // element origin (marker position)
 }
@@ -83,6 +84,8 @@ export class CivilDataModel {
         return CivilDataComponentType.VibrationSensor;
       case "Vehicle Counter":
         return CivilDataComponentType.TrafficSensor;
+      case "Traffic Camera":
+        return CivilDataComponentType.TrafficCamera;
     }
   }
 
@@ -102,7 +105,7 @@ export class CivilDataModel {
     rows.forEach((row) => {
       const type = this.getSensorTypeForQueryRow(row);
       const composingId = (undefined !== row.observedId) ? row.observedId : "";
-      this._allSensors.push({ type, id: row.id, label: row.code, position: row.position, composingId });
+      this._allSensors.push({ type, typeCode: row.typeCode, id: row.id, label: row.code, position: row.position, composingId });
     });
   }
 
@@ -128,6 +131,7 @@ export class CivilDataModel {
       case CivilDataComponentType.TemperatureSensor: return "temperature-sensor.png";
       case CivilDataComponentType.VibrationSensor: return "vibration-sensor.SVG";
       case CivilDataComponentType.TrafficSensor: return "traffic-sensor.svg";
+      case CivilDataComponentType.TrafficCamera: return "traffic-camera.svg";
     }
 
     return "";
@@ -135,6 +139,11 @@ export class CivilDataModel {
 
   public getAllComponents(): CivilComponentProps[] {
     return this._allComponents;
+  }
+
+  public getComponentForId(componentId: string): CivilComponentProps | undefined {
+    const results: CivilComponentProps[] = this._allComponents.filter((c: CivilComponentProps) => c.id === componentId);
+    return results.length ? results[0] : undefined;
   }
 
   public getComponentsByIds(ids: string[]): CivilComponentProps[] {
@@ -161,11 +170,16 @@ export class CivilDataModel {
     return this._allSensors.filter((c: CivilComponentProps) => -1 !== types.indexOf(c.type));
   }
 
+  public getSensorsForParents(parents: CivilComponentProps[]): CivilComponentProps[] {
+    const parentIds = parents.map((c: CivilComponentProps) => c.id);
+    return this._allSensors.filter((c: CivilComponentProps) => -1 !== parentIds.indexOf(c.composingId));
+  }
+
   public getSensorsForParent(parentId: string): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => c.composingId === parentId);
   }
 
-  public getSensorsOfParent(sensor: CivilComponentProps): CivilComponentProps[] {
+  public getSensorsOfSameParent(sensor: CivilComponentProps): CivilComponentProps[] {
     return this._allSensors.filter((c: CivilComponentProps) => c.composingId === sensor.composingId);
   }
 }

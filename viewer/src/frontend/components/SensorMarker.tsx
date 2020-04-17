@@ -2,37 +2,70 @@
  * Copyright (c) 2019 Bentley Systems, Incorporated. All rights reserved.
  * Licensed under the MIT License. See LICENSE.md in the project root for license terms.
  *--------------------------------------------------------------------------------------------*/
-import {
-  IModelApp,
-  Marker,
-  BeButtonEvent,
-  Cluster,
-  MarkerSet,
-  DecorateContext,
-  BeButton,
-  imageElementFromUrl,
-} from "@bentley/imodeljs-frontend";
+import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl, ScreenViewport } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
-
+import { BeDuration } from "@bentley/bentleyjs-core";
+import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
+import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
+import { AdtDataLink } from "../components/AdtDataLink";
 
-// const STATUS_TO_STRING = ["High", "Medium", "Normal"];
-
-// const STATUS_COUNT = 3;
+const STATUS_TO_STRING = ["Normal", "Medium", "High"];
+const STATUS_COUNT = 3;
 const IMAGE_SIZE = 30;
 const MIN_CLUSTER_SIZE = 2;
+  // RGB values for:  green orange red
+const COLORS = ["#92D050", "#ED7D31", "#C00000"];
 
-/** Marker to show a saved view camera location. */
+/** Marker to show a sensor location. */
 export class SensorMarker extends Marker {
   protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
   protected _isFeatured: boolean;
+  protected _doTooltipPolling: boolean;
 
   public get status(): number {
     return 0; // this._component.status;
   }
   public get markerImage(): HTMLImageElement {
     return this._image;
+  }
+
+  public async updateTooltip(component: CivilComponentProps) {
+    if ((IModelApp as any).adtDataLink === undefined)
+      (IModelApp as any).adtDataLink = new AdtDataLink();
+
+    const adtDataLink = (IModelApp as any).adtDataLink;
+    if (!adtDataLink.getToken())
+      await adtDataLink.login();
+
+    const data = CivilDataModel.get();
+    const asset = data.getComponentForId(component.composingId);
+    const sensorData: any = await adtDataLink.fetchDataForNode(component.label);
+
+    let title = "";
+    title += "<b>Name:</b> " + component.label + "<br>";
+    title += "<b>Type:</b> " + component.typeCode! + "<br>";
+    title += "<b>Asset: </b>" + asset?.label + "<br>";
+    switch (component.type) {
+      case CivilDataComponentType.AirQualitySensor:
+      case CivilDataComponentType.TemperatureSensor:
+      case CivilDataComponentType.VibrationSensor:
+      case CivilDataComponentType.TrafficSensor:
+        if (sensorData && sensorData.hasOwnProperty("observationLabel1")) {
+          const value1: string = sensorData.observationValue1.toFixed(2);
+          title += "<b>" + sensorData.observationLabel1 + ": </b>" + value1 + " " + sensorData.observationUnit1 + "<br>";
+        }
+        if (sensorData && sensorData.hasOwnProperty("observationLabel2")) {
+          const value2: string = sensorData.observationValue2.toFixed(2);
+          title += "<b>" + sensorData.observationLabel2 + ": </b>" + value2 + " " + sensorData.observationUnit2 + "<br>";
+        }
+        break;
+    }
+
+    const div = document.createElement("div");
+    div.innerHTML = title;
+    this.title = div;
   }
 
   /** Create a new SensorMarker */
@@ -46,45 +79,85 @@ export class SensorMarker extends Marker {
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
 
+    this._doTooltipPolling = false;
     this._isFeatured = isFeatured;
     this._image = image;
     this.setImage(image);
-
-    // let title = "";
-    // title +=
-    //   "<b>Id:</b> " +
-    //   component.id +
-    //   ", <b>Class:</b> " +
-    //   component.className +
-    //   "<br>";
-    // const maxlen: number = 60;
-    // if (component.description.length > maxlen)
-    //   title +=
-    //     "<b>Desc:</b> " +
-    //     component.description.substring(0, maxlen) +
-    //     "...<br>";
-    // else title += "<b>Desc:</b> " + component.description + "<br>";
-    // title += "<b>Status: </b>" + STATUS_TO_STRING[component.status] + "<br>";
-    // const div = document.createElement("div");
-    // div.innerHTML = title;
-    // this.title = div;
 
     this.setScaleFactor({ low: 0.2, high: 1.4 }); // make size 20% at back of frustum and 140% at front of frustum (if camera is on)
     this._component = component;
   }
 
+  /** Called when the mouse pointer moves over this Marker */
+  public onMouseMove(_ev: BeButtonEvent): void {
+  }
+
+  /** Called when the mouse pointer leaves this Marker. */
+  public onMouseLeave() {
+    super.onMouseLeave();
+    this._doTooltipPolling = false;
+  }
+
+  private async updateTooltipLoop(vp: ScreenViewport, viewPoint: Point3d) {
+    while (this._doTooltipPolling === true) {
+      // tslint:disable-next-line: no-floating-promises
+      this.updateTooltip(this._component);
+      if (this.title)
+        vp.openToolTip(this.title, viewPoint, this.tooltipOptions);
+      await BeDuration.wait(1000);
+    }
+  }
+
+  /** Called when the mouse pointer enters this Marker. */
+  public onMouseEnter(ev: BeButtonEvent) {
+    this._doTooltipPolling = true;
+    const viewPoint: Point3d = ev.viewPoint;
+    const vp: ScreenViewport = ev.viewport as ScreenViewport;
+    super.onMouseEnter(ev);
+
+    // tslint:disable-next-line: no-floating-promises
+    this.updateTooltipLoop(vp, viewPoint);
+  }
+
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = "#92D050";
+    ctx.strokeStyle = COLORS[this.status];
     ctx.fillStyle = this._isFeatured ? "cyan" : "white";
-    ctx.lineWidth = this._isFeatured ? 4 : 3;
+    ctx.lineWidth = this._isFeatured ? 5 : 3;
     ctx.arc(0, 0, this._isFeatured ? 25 : 20, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
   }
 
+  /** Open an image specified as a data URL in a new window/tab. Works around differences between browsers and Electron.
+   * @param url The base64-encoded image URL.
+   * @param title An optional title to apply to the new window.
+   * @beta
+   */
+  public openImageDataUrlInNewWindow(url: string, title?: string): void {
+    const newWindow = window.open(url, title);
+    newWindow!.focus();
+    if (!ElectronRpcConfiguration.isElectron) {
+      newWindow!.onload = () => {
+        const div = newWindow!.document.createElement("div");
+        div.innerHTML = "<img src='" + url + "'/>";
+        newWindow!.document.body.replaceWith(div);
+        if (undefined !== title)
+          newWindow!.document.title = title;
+      };
+    }
+  }
+
+
   public onMouseButton(ev: BeButtonEvent): boolean {
+    if (this._component.type === CivilDataComponentType.TrafficCamera) {
+      const data = CivilDataModel.get();
+      const asset = data.getComponentForId(this._component.composingId);
+      this.openImageDataUrlInNewWindow("traffic-cam-image.jpg", asset!.label);
+      return true;
+    }
+
     if (
       BeButton.Data !== ev.button ||
       !ev.isDown ||
@@ -92,17 +165,17 @@ export class SensorMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
-    ev.viewport!.iModel.selectionSet.replace(this._component.id);
+    // tslint:disable-next-line: no-floating-promises
+    ((IModelApp as any).civilBrowser as CivilBrowser).markerClicked(this._component);
+    // ev.viewport!.iModel.selectionSet.replace(this._component.id);
     return true; // Don't allow clicks to be sent to active tool...
   }
 }
 
-/** A Marker used to show a cluster of saved views. */
+/** A Marker used to show a cluster of sensors. */
 class SensorClusterMarker extends Marker {
   private _cluster: Cluster<SensorMarker>;
   private _maxStatus: number = 100;
-  // RGB values for:  red orange green light-green
-  private _colors: string[] = ["#C00000", "#ED7D31", "#92D050", "#00B050"];
 
   /** Create a new cluster marker */
   constructor(location: XYAndZ, size: XAndY, cluster: Cluster<SensorMarker>) {
@@ -113,36 +186,35 @@ class SensorClusterMarker extends Marker {
       if (marker.status < this._maxStatus) this._maxStatus = marker.status;
     });
     this.label = cluster.markers.length.toLocaleString();
-    this.labelColor = this._colors[this._maxStatus];
+    this.labelColor = COLORS[this._maxStatus];
     this.labelFont = "bold 16px san-serif";
-    // let title = "";
-    // const statusCounts: number[] = new Array<number>();
-    // for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
-    // cluster.markers.forEach((marker) => {
-    //   statusCounts[marker.status]++;
-    // });
+    const statusCounts: number[] = new Array<number>();
+    for (let i: number = 0; i < STATUS_COUNT; i++) statusCounts[i] = 0;
+    cluster.markers.forEach((marker) => {
+      statusCounts[marker.status]++;
+    });
 
-    // title += "<table><caption><b>Status:</b></caption>";
-    // for (let i: number = 0; i < STATUS_COUNT; i++) {
-    //   if (statusCounts[i])
-    //     title +=
-    //       "<tr><td>" +
-    //       STATUS_TO_STRING[i] +
-    //       "</td><td><b>" +
-    //       statusCounts[i] +
-    //       "<b></td></tr>";
-    // }
-    // title += "</table>";
+    let title = "<table><caption><b>Status:</b></caption>";
+    for (let i: number = 0; i < STATUS_COUNT; i++) {
+      if (statusCounts[i])
+        title +=
+          "<tr><td>" +
+          STATUS_TO_STRING[i] +
+          "</td><td><b>" +
+          statusCounts[i] +
+          "<b></td></tr>";
+    }
+    title += "</table>";
 
     const div = document.createElement("div");
-    // div.innerHTML = title;
+    div.innerHTML = title;
     this.title = div;
   }
 
   /** Show the cluster as a white circle with an outline */
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.strokeStyle = "#92D050"; // this._colors[this._maxStatus];
+    ctx.strokeStyle = COLORS[this._maxStatus];
     ctx.fillStyle = "white";
     ctx.lineWidth = 3;
     ctx.arc(0, 0, 20, 0, Math.PI * 2);
@@ -158,6 +230,7 @@ class SensorClusterMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
+
     const elementIds: any = [];
     const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
@@ -206,6 +279,7 @@ export class SensorMarkerSetDecoration {
       CivilDataComponentType.TemperatureSensor,
       CivilDataComponentType.VibrationSensor,
       CivilDataComponentType.TrafficSensor,
+      CivilDataComponentType.TrafficCamera,
     ];
     const loads: any = [];
     typeIndex.forEach((type) => {
