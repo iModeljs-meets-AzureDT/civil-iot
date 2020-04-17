@@ -174,7 +174,7 @@ export class SampleFrontstage extends FrontstageProvider {
         }
         leftPanel={
           <StagePanel
-            size={340} minSize={340}
+            size={310} minSize={310}
             allowedZones={[6, 9]}
             widgets={[
               <Widget element={<CivilBrowser imodel={UiFramework.getIModelConnection()!} />} fillZone={true}

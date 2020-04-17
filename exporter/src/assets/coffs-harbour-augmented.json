@@ -40,7 +40,7 @@
     },
     {
       "name": "Tunnel Air Sensor",
-      "federationGuid": "2f918d86-9c35-41b9-bc57-8e53ec0683f9",
+      "federationGuid": "27231b16-4aef-4286-9900-3e1fb6545e31",
       "observationTypes": [
         "CO",
         "NO2"
@@ -67,6 +67,10 @@
         "Vehicle Count",
         "Truck Count"
       ]
+    },
+    {
+      "name": "Traffic Camera",
+      "observationTypes": []
     },
     {
       "name": "Bridge Sensor",
@@ -376,6 +380,46 @@
       ]
     },
     {
+      "type": "Traffic Camera",
+      "name": "T1-SB-CAM-1",
+      "observes": "T1-SB",
+      "origin": [
+        508224.0989692484,
+        6648415.498466592,
+        40.927956136983866
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-SB-CAM-2",
+      "observes": "T1-SB",
+      "origin": [
+        508199.1396602087,
+        6648582.753103661,
+        44.898176403205774
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-SB-CAM-3",
+      "observes": "T1-SB",
+      "origin": [
+        508058.583104388,
+        6648833.11702222,
+        42.998133990927485
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-SB-CAM-4",
+      "observes": "T1-SB",
+      "origin": [
+        508029.7046370942,
+        6648950.4517668625,
+        39.72401964161308
+      ]
+    },
+    {
       "type": "Tunnel Air Sensor",
       "name": "T1-NB-INT-AIR-1",
       "observes": "T1-NB",
@@ -433,6 +477,46 @@
         508024.029354798,
         6648922.079292772,
         40.8054006978257
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-NB-CAM-1",
+      "observes": "T1-NB",
+      "origin": [
+        508286.67401384196,
+        6648426.586004425,
+        43.54881369722343
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-NB-CAM-2",
+      "observes": "T1-NB",
+      "origin": [
+        508222.8870458608,
+        6648578.8050632235,
+        44.82192352128605
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-NB-CAM-3",
+      "observes": "T1-NB",
+      "origin": [
+        508077.47213061317,
+        6648845.50560528,
+        42.80809887960136
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "T1-NB-CAM-4",
+      "observes": "T1-NB",
+      "origin": [
+        507975.0232033624,
+        6648912.21730424,
+        41.88717495498115
       ]
     },
     {
@@ -686,6 +770,16 @@
       ]
     },
     {
+      "type": "Traffic Camera",
+      "name": "R1-SB-CAM-1",
+      "observes": "R1-SB",
+      "origin": [
+        508211.72685782047,
+        6648040.116177585,
+        32.548213400745844
+      ]
+    },
+    {
       "type": "Vehicle Counter",
       "name": "R1-NB-VC1",
       "observes": "R1-NB",
@@ -693,6 +787,16 @@
         508153.8069972439,
         6647827.5699512735,
         20.38977334897683
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "R1-NB-CAM-1",
+      "observes": "R1-NB",
+      "origin": [
+        508243.5156882574,
+        6648030.540680315,
+        33.33802233442769
       ]
     },
     {
@@ -753,6 +857,26 @@
         508026.33775546425,
         6647491.854691938,
         16.898329950015242
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "RAMP-SB-A-CAM-1",
+      "observes": "RAMP-SB-A",
+      "origin": [
+        507827.58786108275,
+        6646166.881706381,
+        12.097947350383315
+      ]
+    },
+    {
+      "type": "Traffic Camera",
+      "name": "RAMP-NB-A-CAM-1",
+      "observes": "RAMP-NB-A",
+      "origin": [
+        507862.4828475737,
+        6646181.9206276275,
+        11.36317367915738
       ]
     }
   ],

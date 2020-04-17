@@ -51,8 +51,8 @@ export class MenuDataProvider implements ITreeDataProvider {
   public async getNodes(parent?: TreeNodeItem) {
     if (parent === undefined) {
       return [
-        this.createNode(CivilBrowserMode.ModelBreakdown, "Model Breakdown", "HierarchyTree_36.png"),
-        this.createNode(CivilBrowserMode.Assets, "Assets", "Road_36.png"),
+        this.createNode(CivilBrowserMode.ModelBreakdown, "Asset Hierarchy", "HierarchyTree_36.png"),
+        this.createNode(CivilBrowserMode.Assets, "Asset Types", "Road_36.png"),
         this.createNode(CivilBrowserMode.Sensors, "Sensors", "traffic-sensor.svg"),
       ];
     }
