@@ -1,9 +1,9 @@
 {
-  "welcome-message": "Welcome to Civil IoT Viewer",
+  "welcome-message": "Welcome to the Coffs Harbour Operations Portal",
   "signing-in": "Signing-in",
   "components": {
     "imodel-picker": {
-      "open-imodel": "Open Sample iModel",
+      "open-imodel": "Open iModel",
       "signout": "Sign Out"
     },
     "properties": "Properties",
