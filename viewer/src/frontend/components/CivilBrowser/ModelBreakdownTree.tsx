@@ -5,7 +5,7 @@
 import * as React from "react";
 import "./CivilBrowser.scss";
 import { ITreeDataProvider, TreeNodeItem } from "@bentley/ui-components";
-import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
+import { CivilDataModel } from "../../api/CivilDataModel";
 import { AbstractCivilTree, createCivilComponentTreeNode } from "./AbstractCivilTree";
 import { SelectedNodeContext } from "./CivilBrowser";
 import { XAndY } from "@bentley/geometry-core";

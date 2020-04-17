@@ -149,18 +149,19 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     switch (this.state.mode) {
       case CivilBrowserMode.MainMenu: {
         content = <CivilMainMenu onNodeSelected={(mode: CivilBrowserMode) => this.setState({ mode })} />;
-        title = "Digital Twin";
+        title = "Coffs Harbour Digital Twin";
+        title = "Coffs Harbour Operations";
         wantBackbutton = false;
         break;
       }
       case CivilBrowserMode.ModelBreakdown: {
         content = <ModelBreakdownTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
-        title = "Model breakdown";
+        title = "Asset Hierarchy";
         break;
       }
       case CivilBrowserMode.Assets: {
         content = <AssetTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
-        title = "Assets";
+        title = "Asset Types";
         break;
       }
       case CivilBrowserMode.Sensors: {
