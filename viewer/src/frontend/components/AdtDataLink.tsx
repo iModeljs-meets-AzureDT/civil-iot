@@ -8,8 +8,19 @@ const TenantId = "067e9632-ea4c-4ed9-9e6d-e294956e284b";
 
 export class AdtDataLink {
 
+  private static _singleton: AdtDataLink;
+  public static get() { return AdtDataLink._singleton; }
+
   private _tokenName = "adtToken";
   public static adtHost = "coffsharbor-twin.api.wcus.digitaltwins.azure.net";
+
+  public static async initialize() {
+    if (undefined === AdtDataLink._singleton) {
+      AdtDataLink._singleton = new AdtDataLink();
+      if (!AdtDataLink.get().getToken())
+        await AdtDataLink.get().login();
+    }
+  }
 
   public async fetchDataForNode(dtId: string) {
     const request = `http://localhost:3000/digitaltwins/${dtId}?api-version=2020-03-01-preview`;

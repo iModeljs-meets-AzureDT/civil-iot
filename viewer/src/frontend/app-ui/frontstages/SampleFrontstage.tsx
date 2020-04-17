@@ -56,12 +56,13 @@ export class SampleFrontstage extends FrontstageProvider {
   // Content group for both layouts
   private _contentGroup: ContentGroup;
 
-  private _adtDataLink: AdtDataLink = new AdtDataLink();
-
   constructor(public viewStates: ViewState[]) {
     super();
     // Set default Presentation Rule Set Id in Redux store
     UiFramework.setDefaultRulesetId(this._rulesetId);
+
+    // tslint:disable-next-line: no-floating-promises
+    AdtDataLink.initialize();
 
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
       // NEEDSWORK: find a better place to do this
@@ -92,14 +93,6 @@ export class SampleFrontstage extends FrontstageProvider {
         },
       ],
     });
-
-    this.runAdtDataLinkExample();
-  }
-
-  private async runAdtDataLinkExample() {
-    if (!this._adtDataLink.getToken()) await this._adtDataLink.login();
-    const nodeData = await this._adtDataLink.fetchDataForNode("BR2-SB");
-    console.log("Data for BR2-SB: " + JSON.stringify(nodeData));
   }
 
   /** Define the Frontstage properties */

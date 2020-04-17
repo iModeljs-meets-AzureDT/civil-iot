@@ -22,50 +22,20 @@ export class SensorMarker extends Marker {
   protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
   protected _isFeatured: boolean;
-  protected _doTooltipPolling: boolean;
+  protected _doAdtPolling: boolean;
+  protected _tooltipViewPoint: Point3d | undefined;
+  protected _tooltipViewPort: ScreenViewport | undefined;
+  protected _status: number = 0;
+  protected _tooltip: string;
+  protected _sensorData: any;
+  protected _oldValue1: string;
+  protected _oldValue2: string;
 
   public get status(): number {
-    return 0; // this._component.status;
+    return this._status;
   }
   public get markerImage(): HTMLImageElement {
     return this._image;
-  }
-
-  public async updateTooltip(component: CivilComponentProps) {
-    if ((IModelApp as any).adtDataLink === undefined)
-      (IModelApp as any).adtDataLink = new AdtDataLink();
-
-    const adtDataLink = (IModelApp as any).adtDataLink;
-    if (!adtDataLink.getToken())
-      await adtDataLink.login();
-
-    const data = CivilDataModel.get();
-    const asset = data.getComponentForId(component.composingId);
-    const sensorData: any = await adtDataLink.fetchDataForNode(component.label);
-
-    let title = "";
-    title += "<b>Name:</b> " + component.label + "<br>";
-    title += "<b>Type:</b> " + component.typeCode! + "<br>";
-    title += "<b>Asset: </b>" + asset?.label + "<br>";
-    switch (component.type) {
-      case CivilDataComponentType.AirQualitySensor:
-      case CivilDataComponentType.TemperatureSensor:
-      case CivilDataComponentType.VibrationSensor:
-      case CivilDataComponentType.TrafficSensor:
-        if (sensorData && sensorData.hasOwnProperty("observationLabel1")) {
-          const value1: string = sensorData.observationValue1.toFixed(2);
-          title += "<b>" + sensorData.observationLabel1 + ": </b>" + value1 + " " + sensorData.observationUnit1 + "<br>";
-        }
-        if (sensorData && sensorData.hasOwnProperty("observationLabel2")) {
-          const value2: string = sensorData.observationValue2.toFixed(2);
-          title += "<b>" + sensorData.observationLabel2 + ": </b>" + value2 + " " + sensorData.observationUnit2 + "<br>";
-        }
-        break;
-    }
-
-    const div = document.createElement("div");
-    div.innerHTML = title;
-    this.title = div;
   }
 
   /** Create a new SensorMarker */
@@ -79,13 +49,160 @@ export class SensorMarker extends Marker {
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
 
-    this._doTooltipPolling = false;
+    this._doAdtPolling = true;
     this._isFeatured = isFeatured;
+    this._oldValue1 = "";
+    this._oldValue2 = "";
+
     this._image = image;
     this.setImage(image);
 
+    const data = CivilDataModel.get();
+    const asset = data.getComponentForId(component.composingId);
+
+    this._tooltip = "";
+    this._tooltip += "<b>Name:</b> " + component.label + "<br>";
+    this._tooltip += "<b>Type:</b> " + component.typeCode! + "<br>";
+    this._tooltip += "<b>Asset: </b>" + asset?.label + "<br>";
+
+    const div = document.createElement("div");
+    div.innerHTML = this._tooltip;
+    this.title = div;
+
     this.setScaleFactor({ low: 0.2, high: 1.4 }); // make size 20% at back of frustum and 140% at front of frustum (if camera is on)
     this._component = component;
+
+    if (this._component.type !== CivilDataComponentType.TrafficCamera) {
+      // tslint:disable-next-line: no-floating-promises
+      this.updateSensorDataLoop();
+    }
+  }
+
+  public stopPolling() {
+    this._doAdtPolling = false;
+  }
+
+  public async getSensorData(dtId: string) {
+    if (!AdtDataLink.get().getToken())
+      await AdtDataLink.get().login();
+    return AdtDataLink.get().fetchDataForNode(dtId);
+  }
+
+  private async updateSensorDataLoop() {
+    while (this._doAdtPolling) {
+      this._sensorData = await this.getSensorData(this._component.label);
+      this._status = this.getSensorStatus(this._sensorData, this._component.type);
+      if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint && this._tooltipViewPort) {
+        this.updateTooltip(this._component);
+      }
+      await BeDuration.wait(1000);
+    }
+  }
+
+  private getSensorStatus(sensorData: any, type: CivilDataComponentType): number {
+    const TEMPERATURE_UPPER_LIMIT = 100;
+    const CO_UPPER_LIMIT = 4.5;
+    const NO2_UPPER_LIMIT = 50;
+    const VEHICLE_UPPER_LIMIT = 800;
+    const TRUCK_UPPER_LIMIT = 160;
+    const VIBRATION_UPPER_LIMIT = 0.3;
+    const DEFLECTION_UPPER_LIMIT = 12;
+    let sensorStatus = 0;
+
+    if (!sensorData)
+      return 0;
+
+    switch (type) {
+      case CivilDataComponentType.AirQualitySensor:
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "CO") {
+          if (sensorData.observationValue1 > CO_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > CO_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        if (sensorData.hasOwnProperty("observationLabel2") && sensorData.observationLabel2 === "NO2") {
+          if (sensorData.observationValue2 > NO2_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue2 > NO2_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        break;
+      case CivilDataComponentType.TemperatureSensor:
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Temperature") {
+          if (sensorData.observationValue1 > TEMPERATURE_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > TEMPERATURE_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        break;
+      case CivilDataComponentType.VibrationSensor:
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Vibration amplitude") {
+          if (sensorData.observationValue1 > VIBRATION_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > VIBRATION_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Deflection") {
+          if (sensorData.observationValue1 > DEFLECTION_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > DEFLECTION_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        break;
+      case CivilDataComponentType.TrafficSensor:
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Vibration amplitude") {
+          if (sensorData.observationValue1 > VEHICLE_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > VEHICLE_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Deflection") {
+          if (sensorData.observationValue1 > TRUCK_UPPER_LIMIT * 0.8) {
+            if (sensorStatus < 1) sensorStatus = 1;
+          } else if (sensorData.observationValue1 > TRUCK_UPPER_LIMIT) {
+            if (sensorStatus < 2) sensorStatus = 2;
+          }
+        }
+        break;
+    }
+    return sensorStatus;
+  }
+
+  public updateTooltip(component: CivilComponentProps) {
+
+    let title = this._tooltip;
+    let value1: string = "";
+    let value2: string = "";
+    switch (component.type) {
+      case CivilDataComponentType.AirQualitySensor:
+      case CivilDataComponentType.TemperatureSensor:
+      case CivilDataComponentType.VibrationSensor:
+      case CivilDataComponentType.TrafficSensor:
+        if (this._sensorData && this._sensorData.hasOwnProperty("observationLabel1")) {
+          value1 = this._sensorData.observationValue1.toFixed(2);
+          title += "<b>" + this._sensorData.observationLabel1 + ": </b>" + value1 + " " + this._sensorData.observationUnit1 + "<br>";
+        }
+        if (this._sensorData && this._sensorData.hasOwnProperty("observationLabel2")) {
+          value2 = this._sensorData.observationValue2.toFixed(2);
+          title += "<b>" + this._sensorData.observationLabel2 + ": </b>" + value2 + " " + this._sensorData.observationUnit2 + "<br>";
+        }
+        break;
+    }
+
+    if (this._oldValue1.toString() !== value1.toString() || this._oldValue2.toString() !== value2.toString() || !IModelApp.notifications.isToolTipOpen) {
+      const div = document.createElement("div");
+      div.innerHTML = title;
+      this.title = div;
+      this._tooltipViewPort!.openToolTip(this.title!, this._tooltipViewPoint, this.tooltipOptions);
+      this._oldValue1 = value1;
+      this._oldValue2 = value2;
+    }
   }
 
   /** Called when the mouse pointer moves over this Marker */
@@ -95,28 +212,18 @@ export class SensorMarker extends Marker {
   /** Called when the mouse pointer leaves this Marker. */
   public onMouseLeave() {
     super.onMouseLeave();
-    this._doTooltipPolling = false;
-  }
-
-  private async updateTooltipLoop(vp: ScreenViewport, viewPoint: Point3d) {
-    while (this._doTooltipPolling === true) {
-      // tslint:disable-next-line: no-floating-promises
-      this.updateTooltip(this._component);
-      if (this.title)
-        vp.openToolTip(this.title, viewPoint, this.tooltipOptions);
-      await BeDuration.wait(1000);
-    }
+    this._tooltipViewPoint = undefined;
+    this._tooltipViewPort = undefined;
+    IModelApp.notifications.clearToolTip();
   }
 
   /** Called when the mouse pointer enters this Marker. */
   public onMouseEnter(ev: BeButtonEvent) {
-    this._doTooltipPolling = true;
-    const viewPoint: Point3d = ev.viewPoint;
-    const vp: ScreenViewport = ev.viewport as ScreenViewport;
     super.onMouseEnter(ev);
 
-    // tslint:disable-next-line: no-floating-promises
-    this.updateTooltipLoop(vp, viewPoint);
+    this._tooltipViewPoint = ev.viewPoint;
+    this._tooltipViewPort = ev.viewport as ScreenViewport;
+    this.updateTooltip(this._component);
   }
 
   /** Show the cluster as a white circle with an outline */
@@ -148,7 +255,6 @@ export class SensorMarker extends Marker {
       };
     }
   }
-
 
   public onMouseButton(ev: BeButtonEvent): boolean {
     if (this._component.type === CivilDataComponentType.TrafficCamera) {
@@ -317,6 +423,10 @@ export class SensorMarkerSetDecoration {
     this._markerSet.markers.add(marker);
   }
 
+  public stopPolling() {
+    this._markerSet.markers.forEach((marker: SensorMarker) => marker.stopPolling());
+  }
+
   /** We added this class as a ViewManager.decorator below. This method is called to ask for our decorations. We add the MarkerSet. */
   public decorate(context: DecorateContext): void {
     if (undefined !== this._loading) return;
@@ -335,6 +445,7 @@ export class SensorMarkerSetDecoration {
   /** Stop showing markers if currently active. */
   public static clear() {
     if (undefined === SensorMarkerSetDecoration.decorator) return;
+    SensorMarkerSetDecoration.decorator.stopPolling();
     IModelApp.viewManager.dropDecorator(SensorMarkerSetDecoration.decorator!);
     SensorMarkerSetDecoration.decorator = undefined;
   }
