@@ -14,7 +14,7 @@ interface SensorTreeProps {
   onNodeSelected(component: SelectedNodeContext | undefined): void;
   onClickFilterClear(): void;
   filterByNode?: SelectedNodeContext;
-  onMeatballClicked(pos: XAndY, nodeId: string): void;
+  onMeatballClicked(pos: XAndY, selected: SelectedNodeContext): void;
 }
 
 export function SensorTree(props: SensorTreeProps) {

@@ -12,7 +12,7 @@ import { XAndY } from "@bentley/geometry-core";
 
 interface ModelBreakdownTreeProps {
   onNodeSelected(selected: SelectedNodeContext): void;
-  onMeatballClicked(pos: XAndY, nodeId: string): void;
+  onMeatballClicked(pos: XAndY, selected: SelectedNodeContext): void;
 }
 
 export function ModelBreakdownTree(props: ModelBreakdownTreeProps) {

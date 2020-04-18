@@ -17,7 +17,7 @@ import { XAndY } from "@bentley/geometry-core";
 
 interface AbstractCivilTreeProps {
   onNodeSelected(selected: SelectedNodeContext): void;
-  onMeatballClicked(pos: XAndY, nodeId: string): void;
+  onMeatballClicked(pos: XAndY, selected: SelectedNodeContext): void;
   dataProvider: ITreeDataProvider;
 }
 
@@ -36,7 +36,7 @@ export function AbstractCivilTree(props: AbstractCivilTreeProps) {
         treeEvents={eventHandler}
         visibleNodes={visibleNodes}
         iconsEnabled={true}
-        treeRenderer={useAbstractCivilTreeRenderer(props.onMeatballClicked)}
+        treeRenderer={useAbstractCivilTreeRenderer(props)}
       />
     </div>
   </>;
@@ -96,27 +96,24 @@ class AbstractCivilTreeImageLoader implements ITreeImageLoader {
 }
 const abstractCivilTreeImageLoader = new AbstractCivilTreeImageLoader();
 
-function createAbstractCivilTreeNodeRenderer(
-  onMeatballClicked: (pos: XAndY, nodeId: string) => void,
-) {
+function createAbstractCivilTreeNodeRenderer(treeProps: AbstractCivilTreeProps) {
   return (props: TreeNodeRendererProps) => {
+    const nodeContext: SelectedNodeContext = { component: props.node.item as CivilComponentProps, dataProvider: treeProps.dataProvider };
     return (
       <>
         <div className="civiltree-node-wrapper">
           <TreeNodeRenderer {...props} imageLoader={abstractCivilTreeImageLoader} />
           <button
             className="meatball-button"
-            onClick={(e: React.MouseEvent) => { onMeatballClicked({ x: e.pageX, y: e.pageY }, props.node.id); }} />
+            onClick={(e: React.MouseEvent) => { treeProps.onMeatballClicked({ x: e.pageX, y: e.pageY }, nodeContext); }} />
         </div>
       </>
     );
   };
 }
 
-function useAbstractCivilTreeRenderer(
-  onMeatballClicked: (pos: XAndY, nodeId: string) => void,
-) {
-  const nodeRenderer = React.useCallback(createAbstractCivilTreeNodeRenderer(onMeatballClicked), [onMeatballClicked]);
+function useAbstractCivilTreeRenderer(treeProps: AbstractCivilTreeProps) {
+  const nodeRenderer = React.useCallback(createAbstractCivilTreeNodeRenderer(treeProps), [treeProps]);
 
   return React.useCallback((props: TreeRendererProps) => {
     return (
