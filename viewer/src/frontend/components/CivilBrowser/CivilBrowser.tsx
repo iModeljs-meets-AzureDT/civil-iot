@@ -7,7 +7,7 @@ import "./CivilBrowser.scss";
 import { IModelConnection, IModelApp } from "@bentley/imodeljs-frontend";
 import { SidePanelContainer } from "../SidePanelContainer/SidePanelContainer";
 import { CivilMainMenu } from "./CivilMainMenu";
-import { CivilDataModel, CivilComponentProps } from "../../api/CivilDataModel";
+import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../../api/CivilDataModel";
 import { ModelBreakdownTree } from "./ModelBreakdownTree";
 import { SensorTree } from "./SensorTree";
 import { SensorMarkerSetDecoration } from "../../components/SensorMarker";
@@ -16,6 +16,7 @@ import { Range3d, XAndY } from "@bentley/geometry-core";
 import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 import { ITreeDataProvider } from "@bentley/ui-components";
 import { PopupMenu, PopupMenuEntry } from "./PopupMenu";
+import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -113,6 +114,9 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
       entries.push({ label: "Go to " + typeString, node, onPicked: focusOnSensor });
       entries.push({ label: "Show asset", node, onPicked: showAsset });
+
+      if (sensor.type === CivilDataComponentType.TrafficCamera)
+        entries.push({ label: "Show image", node, onPicked: showImage });
     }
 
     const menuEntries: PopupMenuEntry[] = [];
@@ -234,4 +238,31 @@ const showAsset = (entry: PopupMenuEntry) => {
   const asset = CivilDataModel.get().getComponentForId(sensor.composingId);
 
   (IModelApp as any).civilBrowser.setState({ selectedComponentId: asset?.id, mode: CivilBrowserMode.Assets });
+};
+
+/** Open an image specified as a data URL in a new window/tab. Works around differences between browsers and Electron.
+ * @param url The base64-encoded image URL.
+ * @param title An optional title to apply to the new window.
+ * @beta
+ */
+const openImageDataUrlInNewWindow = (url: string, title?: string): void => {
+  const newWindow = window.open(url, title);
+  newWindow!.focus();
+  if (!ElectronRpcConfiguration.isElectron) {
+    newWindow!.onload = () => {
+      const div = newWindow!.document.createElement("div");
+      div.innerHTML = "<img src='" + url + "'/>";
+      newWindow!.document.body.replaceWith(div);
+      if (undefined !== title)
+        newWindow!.document.title = title;
+    };
+  }
+};
+
+const showImage = (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  const data = CivilDataModel.get();
+  const asset = data.getComponentForId(node.component.composingId);
+  openImageDataUrlInNewWindow("traffic-cam-image.jpg", asset!.label);
+  return true;
 };

@@ -255,33 +255,7 @@ export class SensorMarker extends Marker {
     ctx.stroke();
   }
 
-  /** Open an image specified as a data URL in a new window/tab. Works around differences between browsers and Electron.
-   * @param url The base64-encoded image URL.
-   * @param title An optional title to apply to the new window.
-   * @beta
-   */
-  public openImageDataUrlInNewWindow(url: string, title?: string): void {
-    const newWindow = window.open(url, title);
-    newWindow!.focus();
-    if (!ElectronRpcConfiguration.isElectron) {
-      newWindow!.onload = () => {
-        const div = newWindow!.document.createElement("div");
-        div.innerHTML = "<img src='" + url + "'/>";
-        newWindow!.document.body.replaceWith(div);
-        if (undefined !== title)
-          newWindow!.document.title = title;
-      };
-    }
-  }
-
   public onMouseButton(ev: BeButtonEvent): boolean {
-    if (this._component.type === CivilDataComponentType.TrafficCamera) {
-      const data = CivilDataModel.get();
-      const asset = data.getComponentForId(this._component.composingId);
-      this.openImageDataUrlInNewWindow("traffic-cam-image.jpg", asset!.label);
-      return true;
-    }
-
     if (
       BeButton.Data !== ev.button ||
       !ev.isDown ||
@@ -418,7 +392,7 @@ export class SensorMarkerSetDecoration {
 
     sensors.forEach((component) => {
       if (component.position === undefined ||
-         (component.position.x === 0 &&
+        (component.position.x === 0 &&
           component.position.y === 0 &&
           component.position.z === 0)) {
         // tslint:disable-next-line: no-console
