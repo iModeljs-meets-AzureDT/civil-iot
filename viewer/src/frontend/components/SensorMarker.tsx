@@ -8,21 +8,20 @@ import { BeDuration } from "@bentley/bentleyjs-core";
 import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
-import { AdtDataLink } from "../components/AdtDataLink";
+import { AdtDataLink } from "../api/AdtDataLink";
 
-const STATUS_TO_STRING = ["Normal", "Medium", "High"];
-const STATUS_COUNT = 3;
+const STATUS_TO_STRING = ["Offline", "Normal", "Medium", "High"];
+const STATUS_COUNT = 4;
 const IMAGE_SIZE = 30;
 const MIN_CLUSTER_SIZE = 2;
-  // RGB values for:  green orange red
-const COLORS = ["#92D050", "#ED7D31", "#C00000"];
+const COLORS = ["black", "darkgreen", "gold", "red"];
 
 /** Marker to show a sensor location. */
 export class SensorMarker extends Marker {
   protected _component: CivilComponentProps;
   protected _image: HTMLImageElement;
   protected _isFeatured: boolean;
-  protected _doAdtPolling: boolean;
+  protected _doSensorAdtPolling: boolean;
   protected _tooltipViewPoint: Point3d | undefined;
   protected _tooltipViewPort: ScreenViewport | undefined;
   protected _status: number = 0;
@@ -49,7 +48,7 @@ export class SensorMarker extends Marker {
       { x: IMAGE_SIZE, y: IMAGE_SIZE },
     );
 
-    this._doAdtPolling = true;
+    this._doSensorAdtPolling = true;
     this._isFeatured = isFeatured;
     this._oldValue1 = "";
     this._oldValue2 = "";
@@ -61,8 +60,8 @@ export class SensorMarker extends Marker {
     const asset = data.getComponentForId(component.composingId);
 
     this._tooltip = "";
-    this._tooltip += "<b>Name:</b> " + component.label + "<br>";
-    this._tooltip += "<b>Type:</b> " + component.typeCode! + "<br>";
+    this._tooltip += "<b>Name: </b> " + component.label + "<br>";
+    this._tooltip += "<b>Type: </b> " + component.typeCode! + "<br>";
     this._tooltip += "<b>Asset: </b>" + asset?.label + "<br>";
 
     const div = document.createElement("div");
@@ -72,14 +71,12 @@ export class SensorMarker extends Marker {
     this.setScaleFactor({ low: 0.2, high: 1.4 }); // make size 20% at back of frustum and 140% at front of frustum (if camera is on)
     this._component = component;
 
-    if (this._component.type !== CivilDataComponentType.TrafficCamera) {
-      // tslint:disable-next-line: no-floating-promises
-      this.updateSensorDataLoop();
-    }
+    // tslint:disable-next-line: no-floating-promises
+    this.updateSensorDataLoop();
   }
 
   public stopPolling() {
-    this._doAdtPolling = false;
+    this._doSensorAdtPolling = false;
   }
 
   public async getSensorData(dtId: string) {
@@ -89,11 +86,29 @@ export class SensorMarker extends Marker {
   }
 
   private async updateSensorDataLoop() {
-    while (this._doAdtPolling) {
-      this._sensorData = await this.getSensorData(this._component.label);
-      this._status = this.getSensorStatus(this._sensorData, this._component.type);
-      if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint && this._tooltipViewPort) {
-        this.updateTooltip(this._component);
+    let wasPollingStarted: boolean = false;
+
+    // loop while sensor data polling flag is on
+    while (this._doSensorAdtPolling) {
+      // suspend polling if ADT polling toggle switch is off
+      if ((IModelApp as any)._doAdtPolling) {
+        wasPollingStarted = true;
+        this._sensorData = await this.getSensorData(this._component.label);
+        const oldStatus: number = this._status;
+        if (this._component.type === CivilDataComponentType.TrafficCamera)
+          this._status = 1;
+        else
+          this._status = this.getSensorStatus(this._sensorData, this._component.type);
+        if (this._status !== oldStatus && this._tooltipViewPort !== undefined)
+          this._tooltipViewPort!.invalidateDecorations();
+
+        if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint && this._tooltipViewPort) {
+          this.updateTooltip(this._component);
+        }
+      } else if (wasPollingStarted) {
+        wasPollingStarted = false;
+        this._status = 0;   // reset status to 0 (black)
+        this._tooltipViewPort!.invalidateDecorations();
       }
       await BeDuration.wait(1000);
     }
@@ -107,7 +122,7 @@ export class SensorMarker extends Marker {
     const TRUCK_UPPER_LIMIT = 160;
     const VIBRATION_UPPER_LIMIT = 0.3;
     const DEFLECTION_UPPER_LIMIT = 12;
-    let sensorStatus = 0;
+    let sensorStatus = 1;
 
     if (!sensorData)
       return 0;
@@ -115,59 +130,55 @@ export class SensorMarker extends Marker {
     switch (type) {
       case CivilDataComponentType.AirQualitySensor:
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "CO") {
-          if (sensorData.observationValue1 > CO_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > CO_UPPER_LIMIT) {
-            if (sensorStatus < 2) sensorStatus = 2;
-          }
+          if (sensorData.observationValue1 > (CO_UPPER_LIMIT * 0.8))
+            sensorStatus = 2;
+          if (sensorData.observationValue1 > CO_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         if (sensorData.hasOwnProperty("observationLabel2") && sensorData.observationLabel2 === "NO2") {
-          if (sensorData.observationValue2 > NO2_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue2 > NO2_UPPER_LIMIT) {
+          if (sensorData.observationValue2 > (NO2_UPPER_LIMIT * 0.8)) {
             if (sensorStatus < 2) sensorStatus = 2;
           }
+          if (sensorData.observationValue2 > NO2_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         break;
       case CivilDataComponentType.TemperatureSensor:
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Temperature") {
-          if (sensorData.observationValue1 > TEMPERATURE_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > TEMPERATURE_UPPER_LIMIT) {
-            if (sensorStatus < 2) sensorStatus = 2;
-          }
+          if (sensorData.observationValue1 > (TEMPERATURE_UPPER_LIMIT * 0.8))
+            sensorStatus = 2;
+          if (sensorData.observationValue1 > TEMPERATURE_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         break;
       case CivilDataComponentType.VibrationSensor:
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Vibration amplitude") {
-          if (sensorData.observationValue1 > VIBRATION_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > VIBRATION_UPPER_LIMIT) {
-            if (sensorStatus < 2) sensorStatus = 2;
-          }
+          if (sensorData.observationValue1 > (VIBRATION_UPPER_LIMIT * 0.8))
+            sensorStatus = 2;
+          if (sensorData.observationValue1 > VIBRATION_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Deflection") {
-          if (sensorData.observationValue1 > DEFLECTION_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > DEFLECTION_UPPER_LIMIT) {
+          if (sensorData.observationValue1 > (DEFLECTION_UPPER_LIMIT * 0.8)) {
             if (sensorStatus < 2) sensorStatus = 2;
           }
+          if (sensorData.observationValue1 > DEFLECTION_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         break;
       case CivilDataComponentType.TrafficSensor:
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Vibration amplitude") {
-          if (sensorData.observationValue1 > VEHICLE_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > VEHICLE_UPPER_LIMIT) {
-            if (sensorStatus < 2) sensorStatus = 2;
-          }
+          if (sensorData.observationValue1 > (VEHICLE_UPPER_LIMIT * 0.8))
+            sensorStatus = 2;
+          if (sensorData.observationValue1 > VEHICLE_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         if (sensorData.hasOwnProperty("observationLabel1") && sensorData.observationLabel1 === "Deflection") {
-          if (sensorData.observationValue1 > TRUCK_UPPER_LIMIT * 0.8) {
-            if (sensorStatus < 1) sensorStatus = 1;
-          } else if (sensorData.observationValue1 > TRUCK_UPPER_LIMIT) {
+          if (sensorData.observationValue1 > (TRUCK_UPPER_LIMIT * 0.8)) {
             if (sensorStatus < 2) sensorStatus = 2;
           }
+          if (sensorData.observationValue1 > TRUCK_UPPER_LIMIT)
+            sensorStatus = 3;
         }
         break;
     }
@@ -192,6 +203,13 @@ export class SensorMarker extends Marker {
           value2 = this._sensorData.observationValue2.toFixed(2);
           title += "<b>" + this._sensorData.observationLabel2 + ": </b>" + value2 + " " + this._sensorData.observationUnit2 + "<br>";
         }
+        break;
+      case CivilDataComponentType.TrafficCamera:
+        const onlineStatus = (IModelApp as any)._doAdtPolling;
+        title += "<b>Status: </b>" + (onlineStatus ? "Online" : "Offline") + "<br>";
+        this._status = (onlineStatus ? 1 : 0);
+        if (this._tooltipViewPort !== undefined)
+          this._tooltipViewPort.invalidateDecorations();
         break;
     }
 
@@ -230,7 +248,7 @@ export class SensorMarker extends Marker {
   public drawFunc(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
     ctx.strokeStyle = COLORS[this.status];
-    ctx.fillStyle = this._isFeatured ? "cyan" : "white";
+    ctx.fillStyle = this._isFeatured ? "lightcyan" : "white";
     ctx.lineWidth = this._isFeatured ? 5 : 3;
     ctx.arc(0, 0, this._isFeatured ? 25 : 20, 0, Math.PI * 2);
     ctx.fill();
@@ -281,7 +299,7 @@ export class SensorMarker extends Marker {
 /** A Marker used to show a cluster of sensors. */
 class SensorClusterMarker extends Marker {
   private _cluster: Cluster<SensorMarker>;
-  private _maxStatus: number = 100;
+  private _maxStatus: number = 0;
 
   /** Create a new cluster marker */
   constructor(location: XYAndZ, size: XAndY, cluster: Cluster<SensorMarker>) {
@@ -289,7 +307,7 @@ class SensorClusterMarker extends Marker {
 
     this._cluster = cluster;
     this._cluster.markers.forEach((marker) => {
-      if (marker.status < this._maxStatus) this._maxStatus = marker.status;
+      if (marker.status > this._maxStatus) this._maxStatus = marker.status;
     });
     this.label = cluster.markers.length.toLocaleString();
     this.labelColor = COLORS[this._maxStatus];

@@ -4,7 +4,7 @@
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
 
-import { ViewState, Viewport, IModelApp, IModelConnection } from "@bentley/imodeljs-frontend";
+import { ViewState } from "@bentley/imodeljs-frontend";
 
 import {
   ToolWidget,
@@ -38,9 +38,7 @@ import { AppUi } from "../AppUi";
 import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
-import { CivilDataModel } from "../../api/CivilDataModel";
 import { TerrainSettings } from "../../components/TerrainSettings/TerrainSettings";
-import { AdtDataLink } from "../../components/AdtDataLink";
 
 /**
  * Sample Frontstage for Civil IoT Viewer application
@@ -60,14 +58,6 @@ export class SampleFrontstage extends FrontstageProvider {
     super();
     // Set default Presentation Rule Set Id in Redux store
     UiFramework.setDefaultRulesetId(this._rulesetId);
-
-    // tslint:disable-next-line: no-floating-promises
-    AdtDataLink.initialize();
-
-    IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
-      // NEEDSWORK: find a better place to do this
-      await CivilDataModel.initialize(vp.iModel);
-    });
 
     // Create the content layouts.
     this._contentLayoutDef = new ContentLayoutDef({
