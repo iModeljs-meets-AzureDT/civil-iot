@@ -13,6 +13,7 @@ import { XAndY } from "@bentley/geometry-core";
 interface SensorTreeProps {
   onNodeSelected(component: SelectedNodeContext | undefined): void;
   onClickFilterClear(): void;
+  targetNodeId?: string;
   filterByNode?: SelectedNodeContext;
   onMeatballClicked(pos: XAndY, selected: SelectedNodeContext): void;
 }

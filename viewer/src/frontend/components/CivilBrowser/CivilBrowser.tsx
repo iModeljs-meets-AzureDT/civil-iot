@@ -31,7 +31,9 @@ export interface SelectedNodeContext {
 
 interface CivilBrowserState {
   mode: CivilBrowserMode;
-  selectedComponent?: SelectedNodeContext;
+  sensorFilterNode?: SelectedNodeContext;
+  selectedComponentId?: string;
+  selectedSensorId?: string;
 }
 
 interface CivilBrowserProps {
@@ -58,13 +60,13 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
       EmphasizeAssets.clearEmphasize(IModelApp.viewManager.selectedView!);
-      this.setState({ selectedComponent: undefined });
+      this.setState({ sensorFilterNode: undefined });
       return;
     }
 
     focusOnComponent2(selected.component, false);
 
-    this.setState({ selectedComponent: selected });
+    this.setState({ sensorFilterNode: selected });
   }
 
   private _clearComponentSelected = async (): Promise<void> => {
@@ -73,7 +75,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
   public markerClicked = async (sensor: CivilComponentProps): Promise<void> => {
     await focusOnSensor2(sensor, true);
-    this.setState({ mode: CivilBrowserMode.Sensors });
+    this.setState({ mode: CivilBrowserMode.Sensors, selectedSensorId: sensor.id });
   }
 
   private _sensorSelected = async (selected: SelectedNodeContext | undefined, skipZoom?: boolean): Promise<void> => {
@@ -135,7 +137,6 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     switch (this.state.mode) {
       case CivilBrowserMode.MainMenu: {
         content = <CivilMainMenu onNodeSelected={(mode: CivilBrowserMode) => this.setState({ mode })} />;
-        title = "Coffs Harbour Digital Twin";
         title = "Coffs Harbour Operations";
         wantBackbutton = false;
         break;
@@ -146,12 +147,17 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
         break;
       }
       case CivilBrowserMode.Assets: {
-        content = <AssetTree onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu} />;
+        content = <AssetTree
+          onNodeSelected={this._componentSelected} onMeatballClicked={this.showPopupMenu}
+          targetNodeId={this.state.selectedComponentId} />;
         title = "Asset Types";
         break;
       }
       case CivilBrowserMode.Sensors: {
-        content = <SensorTree onNodeSelected={this._sensorSelected} filterByNode={this.state.selectedComponent} onClickFilterClear={this._clearComponentSelected} onMeatballClicked={this.showPopupMenu} />;
+        content = <SensorTree
+          onNodeSelected={this._sensorSelected} onMeatballClicked={this.showPopupMenu}
+          targetNodeId={this.state.selectedSensorId}
+          filterByNode={this.state.sensorFilterNode} onClickFilterClear={this._clearComponentSelected} />;
         title = "Sensors";
         break;
       }
@@ -224,5 +230,8 @@ const showSensors = (entry: PopupMenuEntry) => {
 
 const showAsset = (entry: PopupMenuEntry) => {
   const node = (entry as any).node as SelectedNodeContext;
-  (IModelApp as any).civilBrowser.setState({ selectedComponent: node, mode: CivilBrowserMode.Assets });
+  const sensor = node.component;
+  const asset = CivilDataModel.get().getComponentForId(sensor.composingId);
+
+  (IModelApp as any).civilBrowser.setState({ selectedComponentId: asset?.id, mode: CivilBrowserMode.Assets });
 };

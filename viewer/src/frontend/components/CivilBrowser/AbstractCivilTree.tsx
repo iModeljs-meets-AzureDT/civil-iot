@@ -8,7 +8,7 @@ import {
   useVisibleTreeNodes, ControlledTree, SelectionMode, ITreeDataProvider, TreeEventHandler,
   useModelSource, useNodeLoader, TreeNodeItem,
   AbstractTreeNodeLoaderWithProvider, TreeDataProvider, TreeSelectionModificationEvent, TreeSelectionReplacementEvent,
-  ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage, TreeNodeRendererProps, TreeNodeRenderer, TreeRendererProps, TreeRenderer, DelayLoadedTreeNodeItem,
+  ITreeImageLoader, BeInspireTreeNodeITree, LoadedImage, TreeNodeRendererProps, TreeNodeRenderer, TreeRendererProps, TreeRenderer, DelayLoadedTreeNodeItem, TreeModelSource,
 } from "@bentley/ui-components";
 import { CivilComponentProps, CivilDataModel } from "../../api/CivilDataModel";
 import { useDisposable } from "@bentley/ui-core";
@@ -18,6 +18,7 @@ import { XAndY } from "@bentley/geometry-core";
 interface AbstractCivilTreeProps {
   onNodeSelected(selected: SelectedNodeContext): void;
   onMeatballClicked(pos: XAndY, selected: SelectedNodeContext): void;
+  targetNodeId?: string;
   dataProvider: ITreeDataProvider;
 }
 
@@ -27,6 +28,7 @@ export function AbstractCivilTree(props: AbstractCivilTreeProps) {
 
   const eventHandler = useDisposable(React.useCallback(() => new AbstractCivilSelectionHandler(nodeLoader, props.onNodeSelected), [nodeLoader]));
   const visibleNodes = useVisibleTreeNodes(nodeLoader.modelSource);
+  useTargetSelection(modelSource, props.targetNodeId);
 
   return <>
     <div className="model-breakdown-tree">
@@ -46,6 +48,58 @@ export function createCivilComponentTreeNode(component: CivilComponentProps, has
   const icon = CivilDataModel.getIconForComponent(component.type);
   return ({ ...component, hasChildren, icon });
 }
+
+const useTargetSelection = (modelSource: TreeModelSource, targetNodeId?: string) => {
+  const targetSelected = React.useRef(false);
+
+  // when target id changes reset targetSelected flag
+  React.useEffect(() => {
+    if (targetNodeId)
+      targetSelected.current = false;
+  }, [targetNodeId]);
+
+  React.useEffect(() => {
+    if (!targetNodeId) {
+      return undefined;
+    }
+
+    targetSelected.current = false;
+    const selectTarget = () => {
+      if (targetSelected.current)
+        return;
+
+      modelSource.modifyModel((model) => {
+        const node = model.getNode(targetNodeId);
+        if (!node)
+          return;
+
+        // deselect all other nodes
+        for (const otherNode of model.iterateTreeModelNodes())
+          otherNode.isSelected = false;
+
+        // expand the parent
+        // This isn't working.  We never get here because the target node isn't in the tree model yet?
+        if (undefined !== node.parentId) {
+          const parentNode = model.getNode(node.parentId);
+          if (undefined !== parentNode)
+            parentNode.isExpanded = true;
+        }
+
+        node.isSelected = true;
+        targetSelected.current = true;
+      });
+    };
+    // try to select target node
+    selectTarget();
+
+    // if target node was selected do nothing
+    if (targetSelected.current)
+      return undefined;
+
+    // if target node was not selected (tree is not loaded yet) listen for model changes and try to select node
+    return modelSource.onModelChanged.addListener(selectTarget);
+  }, [modelSource, targetNodeId]);
+};
 
 class AbstractCivilSelectionHandler extends TreeEventHandler {
   private _onNodeSelected: (selected?: SelectedNodeContext) => void;
