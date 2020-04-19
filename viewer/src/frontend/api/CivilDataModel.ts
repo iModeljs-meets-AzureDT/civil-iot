@@ -116,6 +116,25 @@ export class CivilDataModel {
     await this.populateSensors(dataLink);
   }
 
+  public static getStringForComponentType(type: CivilDataComponentType) {
+    switch (type) {
+      case CivilDataComponentType.Interstate: return "Interstate";
+      case CivilDataComponentType.Highway: return "Highway";
+      case CivilDataComponentType.LocalRoad: return "Local Roads";
+      case CivilDataComponentType.Bridge: return "Bridge";
+      case CivilDataComponentType.Tunnel: return "Tunnel";
+      case CivilDataComponentType.Roadway: return "Road";
+      case CivilDataComponentType.RoadSegment: return "Road Segment";
+      case CivilDataComponentType.Ramp: return "Ramp";
+      case CivilDataComponentType.GenericSensor: return "Sensor";
+      case CivilDataComponentType.AirQualitySensor: return "Air Quality Sensor";
+      case CivilDataComponentType.TemperatureSensor: return "Temperature Sensor";
+      case CivilDataComponentType.VibrationSensor: return "Vibration Sensor";
+      case CivilDataComponentType.TrafficSensor: return "Traffic Sensor";
+      case CivilDataComponentType.TrafficCamera: return "Traffic Camera";
+    }
+  }
+
   public static getIconForComponent(type: CivilDataComponentType) {
     switch (type) {
       case CivilDataComponentType.Interstate: return "Road_36.png";
@@ -164,6 +183,11 @@ export class CivilDataModel {
 
   public getComponentsForTypes(types: CivilDataComponentType[]): CivilComponentProps[] {
     return this._allComponents.filter((c: CivilComponentProps) => -1 !== types.indexOf(c.type));
+  }
+
+  public getSensorForId(sensorId: string): CivilComponentProps | undefined {
+    const results: CivilComponentProps[] = this._allSensors.filter((c: CivilComponentProps) => c.id === sensorId);
+    return results.length ? results[0] : undefined;
   }
 
   public getSensorsForTypes(types: CivilDataComponentType[]): CivilComponentProps[] {

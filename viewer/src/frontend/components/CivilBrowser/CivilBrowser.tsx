@@ -62,21 +62,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
-    const component = selected.component;
-
-    if (undefined !== component.geometricId) {
-      EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
-
-      const margin = 0.25;
-      const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
-      await IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
-
-      const data = CivilDataModel.get();
-      const components = data.getSensorsForParent(component.id);
-      SensorMarkerSetDecoration.show(components);
-
-      // this.props.imodel.selectionSet.replace(component.geometricId);
-    }
+    focusOnComponent2(selected.component, false);
 
     this.setState({ selectedComponent: selected });
   }
@@ -85,18 +71,14 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     await this._componentSelected();
   }
 
-  public markerClicked = async (sensor: CivilComponentProps | undefined): Promise<void> => {
-    await this._sensorSelected2(sensor, true);
+  public markerClicked = async (sensor: CivilComponentProps): Promise<void> => {
+    await focusOnSensor2(sensor, true);
     this.setState({ mode: CivilBrowserMode.Sensors });
   }
 
   private _sensorSelected = async (selected: SelectedNodeContext | undefined, skipZoom?: boolean): Promise<void> => {
-    const _sensor = selected ? selected.component : undefined;
-    await this._sensorSelected2(_sensor, skipZoom);
+    const sensor = selected ? selected.component : undefined;
 
-  }
-
-  private _sensorSelected2 = async (sensor: CivilComponentProps | undefined, skipZoom?: boolean): Promise<void> => {
     if (!sensor) {
       this.props.imodel.selectionSet.emptyAll();
       SensorMarkerSetDecoration.clear();
@@ -104,35 +86,37 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
-    const data = CivilDataModel.get();
-    const assets = data.getComponentsByIds([sensor.composingId]);
-    const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
-    EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
-
-    const components = data.getSensorsOfSameParent(sensor);
-    SensorMarkerSetDecoration.show(components, sensor.id);
-
-    if (!skipZoom && undefined !== sensor.position) {
-      const range = Range3d.create(sensor.position);
-      range.expandInPlace(20);
-      IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
-    }
-
-    // this.props.imodel.selectionSet.replace(sensor.id);
+    await focusOnSensor2(sensor, skipZoom);
   }
 
   /** When the user clicks on the meatball button, we will show a small popup menu */
-  private showPopupMenu(cursorPoint: XAndY, nodeId: string) {
-    const menuEntries: PopupMenuEntry[] = [];
+  private showPopupMenu(cursorPoint: XAndY, node: SelectedNodeContext) {
 
     const data = CivilDataModel.get();
-    const component = data.getComponentForId(nodeId);
+    const component = data.getComponentForId(node.component.id);
 
-    const menuEntry1 = { label: "Menu Option 1", component, onPicked: popupCallback };
-    const menuEntry2 = { label: "Menu Option 2", component, onPicked: popupCallback };
+    const entries = [];
 
-    menuEntries.push(menuEntry1);
-    menuEntries.push(menuEntry2);
+    if (undefined !== component) {
+      const typeString = CivilDataModel.getStringForComponentType(component.type);
+
+      entries.push({ label: "Go to " + typeString, node, onPicked: focusOnComponent });
+      entries.push({ label: "Show sensors", node, onPicked: showSensors });
+    }
+
+    const sensor = data.getSensorForId(node.component.id);
+
+    if (undefined !== sensor) {
+      const typeString = CivilDataModel.getStringForComponentType(sensor.type);
+
+      entries.push({ label: "Go to " + typeString, node, onPicked: focusOnSensor });
+      entries.push({ label: "Show asset", node, onPicked: showAsset });
+    }
+
+    const menuEntries: PopupMenuEntry[] = [];
+
+    for (const entry of entries)
+      menuEntries.push(entry);
 
     const offset = 8;
     PopupMenu.onPopupMenuEvent.emit({
@@ -183,7 +167,62 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
   }
 }
 
-const popupCallback = (entry: PopupMenuEntry) => {
-  const component = (entry as any).component as CivilComponentProps;
-  console.log("Got click on popup for node " + component.label + " " + component.type);
+const focusOnSensor = (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  const sensor = node.component;
+  focusOnSensor2(sensor, false);
+};
+
+const focusOnSensor2 = (sensor: CivilComponentProps, skipZoom?: boolean) => {
+  const data = CivilDataModel.get();
+  const assets = data.getComponentsByIds([sensor.composingId]);
+  const withGeomIds = assets.filter((c: CivilComponentProps) => undefined !== c.geometricId);
+  EmphasizeAssets.emphasize(withGeomIds.map((c: CivilComponentProps) => c.geometricId!), IModelApp.viewManager.selectedView!);
+
+  const components = data.getSensorsOfSameParent(sensor);
+  SensorMarkerSetDecoration.show(components, sensor.id);
+
+  if (!skipZoom && undefined !== sensor.position) {
+    const range = Range3d.create(sensor.position);
+    range.expandInPlace(20);
+    IModelApp.viewManager.selectedView!.zoomToVolume(range, { animateFrustumChange: true });
+  }
+
+  // this.props.imodel.selectionSet.replace(sensor.id);
+};
+
+const focusOnComponent = (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  const component = node.component;
+
+  focusOnComponent2(component, false);
+};
+
+const focusOnComponent2 = (component: CivilComponentProps, skipZoom?: boolean) => {
+
+  if (undefined !== component.geometricId) {
+    EmphasizeAssets.emphasize([component.geometricId], IModelApp.viewManager.selectedView!);
+
+    if (!skipZoom) {
+      const margin = 0.25;
+      const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
+      IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
+    }
+
+    const data = CivilDataModel.get();
+    const components = data.getSensorsForParent(component.id);
+    SensorMarkerSetDecoration.show(components);
+
+    // this.props.imodel.selectionSet.replace(component.geometricId);
+  }
+};
+
+const showSensors = (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  (IModelApp as any).civilBrowser.setState({ selectedComponent: node, mode: CivilBrowserMode.Sensors });
+};
+
+const showAsset = (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  (IModelApp as any).civilBrowser.setState({ selectedComponent: node, mode: CivilBrowserMode.Assets });
 };
