@@ -15,6 +15,7 @@ import { ConfigurableUiContent, UiFramework } from "@bentley/ui-framework";
 import { BackstageItem } from "@bentley/ui-abstract";
 import { SignIn } from "@bentley/ui-components";
 
+import { IOTAlert} from "./IOTAlert/IOTAlert";
 import { CivilViewerApp } from "../app/CivilViewerApp";
 import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../api/CivilDataModel";
 import { AdtDataLink } from "../api/AdtDataLink";
@@ -100,12 +101,17 @@ export default class App extends React.Component<{}, AppState> {
               const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
               const oldStatus: number = statusArray[statusIndex];
               if (assetData.hasOwnProperty("computedHealth")) {
-                if (assetData.computedHealth > 100.0)
+                if (assetData.computedHealth > 100.0) {
                   statusArray[statusIndex] = 2;
-                else if (assetData.computedHealth > 80.0)
+                  if ((component as any).status !== 2)
+                    IOTAlert.showAlert("Code Red in component.label", () => { alert("alert was clicked"); });
+                } else if (assetData.computedHealth > 80.0)
                   statusArray[statusIndex] = 1;
                 else
                   statusArray[statusIndex] = 0;
+
+                // Save status on component to manage alerts
+                (component as any).status = statusArray[statusIndex];
 
                 // skip updating colors if no change
                 if (statusArray[statusIndex] !== oldStatus) {
