@@ -5,10 +5,10 @@
 import * as React from "react";
 import { Provider } from "react-redux";
 
-import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
-import { OpenMode, ClientRequestContext, Logger } from "@bentley/bentleyjs-core";
+import { ElectronRpcConfiguration, ColorDef } from "@bentley/imodeljs-common";
+import { OpenMode, ClientRequestContext, Logger, BeDuration } from "@bentley/bentleyjs-core";
 import { ConnectClient, IModelQuery, Project, Config } from "@bentley/imodeljs-clients";
-import { IModelApp, IModelConnection, FrontendRequestContext, AuthorizedFrontendRequestContext, ViewState } from "@bentley/imodeljs-frontend";
+import { IModelApp, IModelConnection, FrontendRequestContext, AuthorizedFrontendRequestContext, ViewState, Viewport } from "@bentley/imodeljs-frontend";
 import { Presentation, SelectionChangeEventArgs, ISelectionProvider, IFavoritePropertiesStorage, FavoriteProperties, FavoritePropertiesManager } from "@bentley/presentation-frontend";
 import { Button, ButtonSize, ButtonType, Spinner, SpinnerSize } from "@bentley/ui-core";
 import { ConfigurableUiContent, UiFramework } from "@bentley/ui-framework";
@@ -16,6 +16,9 @@ import { BackstageItem } from "@bentley/ui-abstract";
 import { SignIn } from "@bentley/ui-components";
 
 import { CivilViewerApp } from "../app/CivilViewerApp";
+import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../api/CivilDataModel";
+import { AdtDataLink } from "../api/AdtDataLink";
+import { EmphasizeAssets } from "../api/EmphasizeAssets";
 import { AppUi } from "../app-ui/AppUi";
 import { AppBackstageItemProvider } from "../app-ui/backstage/AppBackstageItemProvider";
 import { AppBackstageComposer } from "../app-ui/backstage/AppBackstageComposer";
@@ -25,6 +28,8 @@ import { AppLoggerCategory } from "../../common/configuration";
 import "@bentley/icons-generic-webfont/dist/bentley-icons-generic-webfont.css";
 import "./App.css";
 import { PopupMenu } from "./CivilBrowser/PopupMenu";
+
+const COLORS = ["darkgreen", "gold", "red"];
 
 /** React state of the App component */
 export interface AppState {
@@ -55,6 +60,76 @@ export default class App extends React.Component<{}, AppState> {
     CivilViewerApp.oidcClient.onUserStateChanged.addListener(this._onUserStateChanged);
     // subscribe for unified selection changes
     Presentation.selection.selectionChange.addListener(this._onSelectionChanged);
+
+    IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
+      await AdtDataLink.initialize();
+      await CivilDataModel.initialize(vp.iModel);
+      await this.updateAssetDataLoop(vp);
+    });
+  }
+
+  private async updateAssetDataLoop(vp: Viewport) {
+    const data = CivilDataModel.get();
+    const assetTypes: CivilDataComponentType[] = [CivilDataComponentType.RoadSegment, CivilDataComponentType.Bridge, CivilDataComponentType.Tunnel];
+    const assets: CivilComponentProps[] = data.getComponentsForTypes(assetTypes);
+    const statusArray: number[] = [];
+    let statusIndex: number = 0;
+    let wasPollingStarted: boolean = false;
+
+    // The global polling switch is turned on by default but can be disabled by a settings button
+    (IModelApp as any)._doAdtPolling = true;
+
+    while (true) {
+
+      if ((IModelApp as any)._doAdtPolling) {
+        statusIndex = 0;
+        wasPollingStarted = true;
+
+        assets.forEach(async (component: CivilComponentProps) => {
+          // Check if component(s) are emphasized and skip colorizing any that are not
+          const emphasizeComponent = (IModelApp as any).emphasizeComponent;
+          let skipComponentColor = emphasizeComponent !== undefined;
+          if (emphasizeComponent !== undefined) {
+            emphasizeComponent.forEach((geomId: string) => {
+              if (component.geometricId === geomId)
+                skipComponentColor = false;
+            });
+          }
+          if ((component as any).skip !== true && !skipComponentColor) {
+            try {
+              const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
+              const oldStatus: number = statusArray[statusIndex];
+              if (assetData.hasOwnProperty("computedHealth")) {
+                if (assetData.computedHealth > 100.0)
+                  statusArray[statusIndex] = 2;
+                else if (assetData.computedHealth > 80.0)
+                  statusArray[statusIndex] = 1;
+                else
+                  statusArray[statusIndex] = 0;
+
+                // skip updating colors if no change
+                if (statusArray[statusIndex] !== oldStatus) {
+                  if (undefined !== component.geometricId) {
+                    const status = statusArray[statusIndex];
+                    EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
+                  }
+                }
+              } else // if this component did not have a computedHealth status - we will start skipping it
+                (component as any).skip = true;
+            } catch (e) {
+              (component as any).skip = true;
+            }
+          }
+          statusIndex += 1;
+        });
+      } else if (wasPollingStarted) {
+        wasPollingStarted = false;
+        EmphasizeAssets.clearColorize(vp);
+      }
+
+      vp.invalidateScene();
+      await BeDuration.wait(1000);    // pause 1 second between each asset health status polling loop
+    }
   }
 
   public componentWillUnmount() {

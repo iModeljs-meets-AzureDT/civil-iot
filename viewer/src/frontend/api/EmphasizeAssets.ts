@@ -2,7 +2,7 @@
 * Copyright (c) Bentley Systems, Incorporated. All rights reserved.
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
-import { EmphasizeElements, Viewport } from "@bentley/imodeljs-frontend";
+import { EmphasizeElements, Viewport, IModelApp } from "@bentley/imodeljs-frontend";
 import { ColorDef } from "@bentley/imodeljs-common";
 
 export class EmphasizeAssets {
@@ -21,9 +21,13 @@ export class EmphasizeAssets {
   public static clearEmphasize(vp: Viewport) {
     const emph = EmphasizeElements.getOrCreate(vp);
     emph.clearEmphasizedElements(vp);
+    (IModelApp as any).emphasizeComponent = undefined;
   }
 
   public static emphasize(ids: string[], vp: Viewport) {
+    (IModelApp as any).emphasizeComponent = ids;
+    EmphasizeAssets.clearColorize(vp);
+    vp.invalidateScene();
     const emph = EmphasizeElements.getOrCreate(vp);
     emph.wantEmphasis = true;
     emph.emphasizeElements(ids, vp);

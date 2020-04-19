@@ -40,7 +40,8 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       transparency = false === backgroundMap.transparency ? 0 : backgroundMap.transparency;
     }
 
-    this.state = { showPopup: false, isLiveDataActive: false, mapIsOn, terrainIsOn, transparency };
+    const isLiveDataActive: boolean = (IModelApp as any)._doAdtPolling;
+    this.state = { showPopup: false, isLiveDataActive, mapIsOn, terrainIsOn, transparency };
   }
 
   private _onChangeTransparency = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +87,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
   }
 
   private _onToggleLiveData = (turnOn: boolean) => {
-    alert("Turn " + turnOn ? "ON" : "OFF" + " live data");
+    (IModelApp as any)._doAdtPolling = turnOn;
   }
 
   public render() {
