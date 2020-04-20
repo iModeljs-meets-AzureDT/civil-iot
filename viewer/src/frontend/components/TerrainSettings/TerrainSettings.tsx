@@ -3,9 +3,8 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
-import { ToolButton } from "@bentley/ui-framework";
-import { SvgSprite, Popup, Position, Toggle, CommonProps } from "@bentley/ui-core";
-import terrainIcon from "../../components/TerrainSettings/terrain.svg";
+import { Toggle, CommonProps } from "@bentley/ui-core";
+import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 import { IModelApp, ScreenViewport, SpatialViewState } from "@bentley/imodeljs-frontend";
 import { BackgroundMapType } from "@bentley/imodeljs-common";
 import "./TerrainSettings.scss";
@@ -88,6 +87,10 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
 
   private _onToggleLiveData = (turnOn: boolean) => {
     (IModelApp as any)._doAdtPolling = turnOn;
+    if (!turnOn)
+      EmphasizeAssets.clearColorize(IModelApp.viewManager.selectedView!);
+    IModelApp.viewManager.selectedView!.invalidateDecorations();
+    IModelApp.viewManager.selectedView!.invalidateScene();
   }
 
   public render() {
