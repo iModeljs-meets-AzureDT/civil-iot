@@ -7,6 +7,7 @@ import { Toggle, CommonProps } from "@bentley/ui-core";
 import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 import { IModelApp, ScreenViewport, SpatialViewState } from "@bentley/imodeljs-frontend";
 import { BackgroundMapType } from "@bentley/imodeljs-common";
+import { AdtDataLink } from "../../api/AdtDataLink";
 import "./TerrainSettings.scss";
 
 interface TerrainSettingsProps extends CommonProps {
@@ -85,10 +86,13 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
     this.setState({ terrainIsOn: turnOn });
   }
 
-  private _onToggleLiveData = (turnOn: boolean) => {
+  private _onToggleLiveData = async (turnOn: boolean) => {
     (IModelApp as any)._doAdtPolling = turnOn;
     if (!turnOn)
       EmphasizeAssets.clearColorize(IModelApp.viewManager.selectedView!);
+    else
+      await AdtDataLink.initialize();
+
     IModelApp.viewManager.selectedView!.invalidateDecorations();
     IModelApp.viewManager.selectedView!.invalidateScene();
   }

@@ -63,9 +63,28 @@ export default class App extends React.Component<{}, AppState> {
     Presentation.selection.selectionChange.addListener(this._onSelectionChanged);
 
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
-      await AdtDataLink.initialize();
       await CivilDataModel.initialize(vp.iModel);
       await this.updateAssetDataLoop(vp);
+    });
+  }
+
+  private async getAssetStatus(assets: CivilComponentProps[]) {
+
+    assets.forEach(async (component: CivilComponentProps) => {
+      try {
+        const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
+        (component as any).status = -1;
+        if (assetData.hasOwnProperty("computedHealth")) {
+          if (assetData.computedHealth > 100.0) {
+            (component as any).status = 2;
+            if ((component as any).status !== 2)
+              IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
+          } else if (assetData.computedHealth > 80.0)
+            (component as any).status = 1;
+          else
+            (component as any).status = 0;
+        }
+      } catch (e) {}
     });
   }
 
@@ -73,7 +92,6 @@ export default class App extends React.Component<{}, AppState> {
     const data = CivilDataModel.get();
     const assetTypes: CivilDataComponentType[] = [CivilDataComponentType.RoadSegment, CivilDataComponentType.Bridge, CivilDataComponentType.Tunnel];
     const assets: CivilComponentProps[] = data.getComponentsForTypes(assetTypes);
-    // let statusArray: number[] = [];
     let statusIndex: number = 0;
     let wasPollingStarted: boolean = false;
 
@@ -85,56 +103,28 @@ export default class App extends React.Component<{}, AppState> {
       if ((IModelApp as any)._doAdtPolling) {
         statusIndex = 0;
         wasPollingStarted = true;
+        // Check if component(s) are emphasized and skip colorizing any that are not
+        const emphasizeComponent = (IModelApp as any).emphasizeComponent;
+        const isEmphasized = emphasizeComponent !== undefined;
+
+        await this.getAssetStatus(assets);
 
         assets.forEach(async (component: CivilComponentProps) => {
-          // Check if component(s) are emphasized and skip colorizing any that are not
-          const emphasizeComponent = (IModelApp as any).emphasizeComponent;
-          let setComponentColor = emphasizeComponent === undefined;
-          if (emphasizeComponent !== undefined) {
+          let setComponentColor = false;
+          if (!isEmphasized)
+            setComponentColor = true;
+          else {
             emphasizeComponent.forEach((geomId: string) => {
-              console.log(component.geometricId);
-              console.log(geomId);
-              console.log(component.geometricId === geomId);
-              if (component.geometricId === geomId) {
+              if (component.geometricId === geomId)
                 setComponentColor = true;
-                console.log("equal");
-              } else {
-                setComponentColor = false;
-                console.log("not equal");
-              }
             });
           }
           // if ((component as any).skip !== true && !setComponentColor) {
           if (setComponentColor) {
-            try {
-              const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
-              // const oldStatus: number = statusArray[statusIndex];
-              let status = -1;
-              if (assetData.hasOwnProperty("computedHealth")) {
-                if (assetData.computedHealth > 100.0) {
-                  status = 2;
-                  if ((component as any).status !== 2)
-                    IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
-                } else if (assetData.computedHealth > 80.0)
-                  status = 1;
-                else
-                  status = 0;
-
-                // Save status on component to manage alerts
-                // (component as any).status = statusArray[statusIndex];
-
-                // skip updating colors if no change
-                // if (statusArray[statusIndex] !== oldStatus) {
-                if (undefined !== component.geometricId) {
-                  // const status = statusArray[statusIndex];
-                  EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
-                  vp.invalidateScene();
-                  // }
-                }
-              } else // if this component did not have a computedHealth status - we will start skipping it
-                (component as any).skip = true;
-            } catch (e) {
-              (component as any).skip = true;
+            const status = (component as any).status;
+            if (undefined !== component.geometricId && status !== -1) {
+              EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
+              vp.invalidateScene();
             }
           }
           statusIndex += 1;
@@ -143,10 +133,8 @@ export default class App extends React.Component<{}, AppState> {
         wasPollingStarted = false;
         EmphasizeAssets.clearColorize(vp);
         vp.invalidateScene();
-        // statusArray = [];
       }
 
-      vp.invalidateScene();
       await BeDuration.wait(1000);    // pause 1 second between each asset health status polling loop
     }
   }
