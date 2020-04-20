@@ -27,7 +27,6 @@ export class EmphasizeAssets {
   public static emphasize(ids: string[], vp: Viewport) {
     (IModelApp as any).emphasizeComponent = ids;
     EmphasizeAssets.clearColorize(vp);
-    vp.invalidateScene();
     const emph = EmphasizeElements.getOrCreate(vp);
     emph.wantEmphasis = true;
     emph.emphasizeElements(ids, vp);

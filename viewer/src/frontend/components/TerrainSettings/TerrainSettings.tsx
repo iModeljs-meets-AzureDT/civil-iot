@@ -87,11 +87,13 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
   }
 
   private _onToggleLiveData = async (turnOn: boolean) => {
-    (IModelApp as any)._doAdtPolling = turnOn;
-    if (!turnOn)
+    if (!turnOn) {
+      (IModelApp as any)._doAdtPolling = false;
       EmphasizeAssets.clearColorize(IModelApp.viewManager.selectedView!);
-    else
+    } else {
       await AdtDataLink.initialize();
+      (IModelApp as any)._doAdtPolling = true;
+    }
 
     IModelApp.viewManager.selectedView!.invalidateDecorations();
     IModelApp.viewManager.selectedView!.invalidateScene();

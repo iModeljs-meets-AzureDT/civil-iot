@@ -68,23 +68,27 @@ export default class App extends React.Component<{}, AppState> {
     });
   }
 
-  private async getAssetStatus(assets: CivilComponentProps[]) {
+  private async updateAdtAssetStatus(assets: CivilComponentProps[]) {
 
     assets.forEach(async (component: CivilComponentProps) => {
-      try {
-        const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
-        (component as any).status = -1;
-        if (assetData.hasOwnProperty("computedHealth")) {
-          if (assetData.computedHealth > 100.0) {
-            (component as any).status = 2;
-            if ((component as any).status !== 2)
-              IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
-          } else if (assetData.computedHealth > 80.0)
-            (component as any).status = 1;
-          else
-            (component as any).status = 0;
-        }
-      } catch (e) {}
+      // Stop polling asset if previous pass has marked this as not reporting computed health status (-1)
+      if ((component as any).status !== -1) {
+        try {
+          const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
+          (component as any).lastStatus = (component as any).status;
+          (component as any).status = -1;
+          if (assetData.hasOwnProperty("computedHealth")) {
+            if (assetData.computedHealth > 100.0) {
+              if ((component as any).lastStatus !== 2)
+                IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
+              (component as any).status = 2;
+            } else if (assetData.computedHealth > 80.0)
+              (component as any).status = 1;
+            else
+              (component as any).status = 0;
+          }
+        } catch (e) {}
+      }
     });
   }
 
@@ -92,7 +96,6 @@ export default class App extends React.Component<{}, AppState> {
     const data = CivilDataModel.get();
     const assetTypes: CivilDataComponentType[] = [CivilDataComponentType.RoadSegment, CivilDataComponentType.Bridge, CivilDataComponentType.Tunnel];
     const assets: CivilComponentProps[] = data.getComponentsForTypes(assetTypes);
-    let statusIndex: number = 0;
     let wasPollingStarted: boolean = false;
 
     // The global polling switch is turned on by default but can be disabled by a settings button
@@ -101,38 +104,39 @@ export default class App extends React.Component<{}, AppState> {
     while (true) {
 
       if ((IModelApp as any)._doAdtPolling) {
-        statusIndex = 0;
         wasPollingStarted = true;
-        // Check if component(s) are emphasized and skip colorizing any that are not
+
+        await this.updateAdtAssetStatus(assets);
+
         const emphasizeComponent = (IModelApp as any).emphasizeComponent;
         const isEmphasized = emphasizeComponent !== undefined;
 
-        await this.getAssetStatus(assets);
-
         assets.forEach(async (component: CivilComponentProps) => {
-          let setComponentColor = false;
-          if (!isEmphasized)
-            setComponentColor = true;
-          else {
-            emphasizeComponent.forEach((geomId: string) => {
-              if (component.geometricId === geomId)
-                setComponentColor = true;
-            });
-          }
-          // if ((component as any).skip !== true && !setComponentColor) {
-          if (setComponentColor) {
-            const status = (component as any).status;
-            if (undefined !== component.geometricId && status !== -1) {
-              EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
-              vp.invalidateScene();
+
+          // Only attempt to colorize assets that have a computed health status - zero and above
+          if ((component as any).status !== -1) {
+
+            // Check if component(s) are emphasized and if so - skip colorizing any that are not
+            let setComponentColor = false;
+            if (!isEmphasized) {
+              setComponentColor = true;
+            } else {
+              emphasizeComponent.forEach((geomId: string) => {
+                if (component.geometricId === geomId)
+                  setComponentColor = true;
+              });
+            }
+            if (setComponentColor) {
+              const status = (component as any).status;
+              if (undefined !== component.geometricId && status !== -1) {
+                EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
+              }
             }
           }
-          statusIndex += 1;
         });
       } else if (wasPollingStarted) {
         wasPollingStarted = false;
         EmphasizeAssets.clearColorize(vp);
-        vp.invalidateScene();
       }
 
       await BeDuration.wait(1000);    // pause 1 second between each asset health status polling loop

@@ -75,21 +75,16 @@ export class SensorMarker extends Marker {
     this.updateSensorDataLoop();
   }
 
-  public stopPolling() {
-    this._doSensorAdtPolling = false;
-  }
-
   public async getSensorData(dtId: string) {
-    if (!AdtDataLink.get().getToken())
-      await AdtDataLink.get().login();
+    // if (!AdtDataLink.get().getToken())
+    //   await AdtDataLink.get().login();
     return AdtDataLink.get().fetchDataForNode(dtId);
   }
 
   private async updateSensorDataLoop() {
     let wasPollingStarted: boolean = false;
 
-    // loop while sensor data polling flag is on
-    while (this._doSensorAdtPolling) {
+    while (true) {
       // suspend polling if ADT polling toggle switch is off
       if ((IModelApp as any)._doAdtPolling) {
         wasPollingStarted = true;
@@ -99,7 +94,7 @@ export class SensorMarker extends Marker {
           this._status = 1;
         else
           this._status = this.getSensorStatus(this._sensorData, this._component.type);
-        if (this._status !== oldStatus && this._tooltipViewPort !== undefined)
+        if (this._status !== oldStatus)
           this._tooltipViewPort!.invalidateDecorations();
 
         if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint && this._tooltipViewPort) {
@@ -415,10 +410,6 @@ export class SensorMarkerSetDecoration {
     this._markerSet.markers.add(marker);
   }
 
-  public stopPolling() {
-    this._markerSet.markers.forEach((marker: SensorMarker) => marker.stopPolling());
-  }
-
   /** We added this class as a ViewManager.decorator below. This method is called to ask for our decorations. We add the MarkerSet. */
   public decorate(context: DecorateContext): void {
     if (undefined !== this._loading) return;
@@ -437,9 +428,7 @@ export class SensorMarkerSetDecoration {
   /** Stop showing markers if currently active. */
   public static clear() {
     if (undefined === SensorMarkerSetDecoration.decorator) return;
-    SensorMarkerSetDecoration.decorator.stopPolling();
     IModelApp.viewManager.dropDecorator(SensorMarkerSetDecoration.decorator!);
-    SensorMarkerSetDecoration.decorator = undefined;
   }
 
   /** Toggle display of markers on and off. */
