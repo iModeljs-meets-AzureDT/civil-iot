@@ -73,12 +73,12 @@ export default class App extends React.Component<{}, AppState> {
     const data = CivilDataModel.get();
     const assetTypes: CivilDataComponentType[] = [CivilDataComponentType.RoadSegment, CivilDataComponentType.Bridge, CivilDataComponentType.Tunnel];
     const assets: CivilComponentProps[] = data.getComponentsForTypes(assetTypes);
-    const statusArray: number[] = [];
+    // let statusArray: number[] = [];
     let statusIndex: number = 0;
     let wasPollingStarted: boolean = false;
 
     // The global polling switch is turned on by default but can be disabled by a settings button
-    (IModelApp as any)._doAdtPolling = true;
+    (IModelApp as any)._doAdtPolling = false;
 
     while (true) {
 
@@ -89,36 +89,47 @@ export default class App extends React.Component<{}, AppState> {
         assets.forEach(async (component: CivilComponentProps) => {
           // Check if component(s) are emphasized and skip colorizing any that are not
           const emphasizeComponent = (IModelApp as any).emphasizeComponent;
-          let skipComponentColor = emphasizeComponent !== undefined;
+          let setComponentColor = emphasizeComponent === undefined;
           if (emphasizeComponent !== undefined) {
             emphasizeComponent.forEach((geomId: string) => {
-              if (component.geometricId === geomId)
-                skipComponentColor = false;
+              console.log(component.geometricId);
+              console.log(geomId);
+              console.log(component.geometricId === geomId);
+              if (component.geometricId === geomId) {
+                setComponentColor = true;
+                console.log("equal");
+              } else {
+                setComponentColor = false;
+                console.log("not equal");
+              }
             });
           }
-          if ((component as any).skip !== true && !skipComponentColor) {
+          // if ((component as any).skip !== true && !setComponentColor) {
+          if (setComponentColor) {
             try {
               const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
-              const oldStatus: number = statusArray[statusIndex];
+              // const oldStatus: number = statusArray[statusIndex];
+              let status = -1;
               if (assetData.hasOwnProperty("computedHealth")) {
                 if (assetData.computedHealth > 100.0) {
-                  statusArray[statusIndex] = 2;
+                  status = 2;
                   if ((component as any).status !== 2)
-                    IOTAlert.showAlert("Code Red in component.label", () => { alert("alert was clicked"); });
+                    IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
                 } else if (assetData.computedHealth > 80.0)
-                  statusArray[statusIndex] = 1;
+                  status = 1;
                 else
-                  statusArray[statusIndex] = 0;
+                  status = 0;
 
                 // Save status on component to manage alerts
-                (component as any).status = statusArray[statusIndex];
+                // (component as any).status = statusArray[statusIndex];
 
                 // skip updating colors if no change
-                if (statusArray[statusIndex] !== oldStatus) {
-                  if (undefined !== component.geometricId) {
-                    const status = statusArray[statusIndex];
-                    EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
-                  }
+                // if (statusArray[statusIndex] !== oldStatus) {
+                if (undefined !== component.geometricId) {
+                  // const status = statusArray[statusIndex];
+                  EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
+                  vp.invalidateScene();
+                  // }
                 }
               } else // if this component did not have a computedHealth status - we will start skipping it
                 (component as any).skip = true;
@@ -131,6 +142,8 @@ export default class App extends React.Component<{}, AppState> {
       } else if (wasPollingStarted) {
         wasPollingStarted = false;
         EmphasizeAssets.clearColorize(vp);
+        vp.invalidateScene();
+        // statusArray = [];
       }
 
       vp.invalidateScene();
