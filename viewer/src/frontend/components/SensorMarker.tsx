@@ -5,7 +5,6 @@
 import { IModelApp, Marker, BeButtonEvent, Cluster, MarkerSet, DecorateContext, BeButton, imageElementFromUrl, ScreenViewport } from "@bentley/imodeljs-frontend";
 import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
 import { BeDuration } from "@bentley/bentleyjs-core";
-import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
 import { AdtDataLink } from "../api/AdtDataLink";
@@ -23,7 +22,6 @@ export class SensorMarker extends Marker {
   protected _isFeatured: boolean;
   protected _doSensorAdtPolling: boolean;
   protected _tooltipViewPoint: Point3d | undefined;
-  protected _tooltipViewPort: ScreenViewport | undefined;
   protected _status: number = 0;
   protected _tooltip: string;
   protected _sensorData: any;
@@ -75,6 +73,10 @@ export class SensorMarker extends Marker {
     this.updateSensorDataLoop();
   }
 
+  public endSensorDataPolling() {
+    this._doSensorAdtPolling = false;
+  }
+
   public async getSensorData(dtId: string) {
     // if (!AdtDataLink.get().getToken())
     //   await AdtDataLink.get().login();
@@ -84,7 +86,7 @@ export class SensorMarker extends Marker {
   private async updateSensorDataLoop() {
     let wasPollingStarted: boolean = false;
 
-    while (true) {
+    while (this._doSensorAdtPolling) {
       // suspend polling if ADT polling toggle switch is off
       if ((IModelApp as any)._doAdtPolling) {
         wasPollingStarted = true;
@@ -95,15 +97,15 @@ export class SensorMarker extends Marker {
         else
           this._status = this.getSensorStatus(this._sensorData, this._component.type);
         if (this._status !== oldStatus)
-          this._tooltipViewPort!.invalidateDecorations();
+          IModelApp.viewManager.selectedView!.invalidateDecorations();
 
-        if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint && this._tooltipViewPort) {
+        if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint) {
           this.updateTooltip(this._component);
         }
       } else if (wasPollingStarted) {
         wasPollingStarted = false;
         this._status = 0;   // reset status to 0 (black)
-        this._tooltipViewPort!.invalidateDecorations();
+        IModelApp.viewManager.selectedView!.invalidateDecorations();
       }
       await BeDuration.wait(1000);
     }
@@ -203,8 +205,7 @@ export class SensorMarker extends Marker {
         const onlineStatus = (IModelApp as any)._doAdtPolling;
         title += "<b>Status: </b>" + (onlineStatus ? "Online" : "Offline") + "<br>";
         this._status = (onlineStatus ? 1 : 0);
-        if (this._tooltipViewPort !== undefined)
-          this._tooltipViewPort.invalidateDecorations();
+        IModelApp.viewManager.selectedView!.invalidateDecorations();
         break;
     }
 
@@ -212,7 +213,7 @@ export class SensorMarker extends Marker {
       const div = document.createElement("div");
       div.innerHTML = title;
       this.title = div;
-      this._tooltipViewPort!.openToolTip(this.title!, this._tooltipViewPoint, this.tooltipOptions);
+      IModelApp.viewManager.selectedView!.openToolTip(this.title!, this._tooltipViewPoint, this.tooltipOptions);
       this._oldValue1 = value1;
       this._oldValue2 = value2;
     }
@@ -226,7 +227,6 @@ export class SensorMarker extends Marker {
   public onMouseLeave() {
     super.onMouseLeave();
     this._tooltipViewPoint = undefined;
-    this._tooltipViewPort = undefined;
     IModelApp.notifications.clearToolTip();
   }
 
@@ -235,7 +235,6 @@ export class SensorMarker extends Marker {
     super.onMouseEnter(ev);
 
     this._tooltipViewPoint = ev.viewPoint;
-    this._tooltipViewPort = ev.viewport as ScreenViewport;
     this.updateTooltip(this._component);
   }
 
@@ -258,9 +257,7 @@ export class SensorMarker extends Marker {
       !ev.viewport.view.isSpatialView()
     )
       return true;
-    // tslint:disable-next-line: no-floating-promises
     ((IModelApp as any).civilBrowser as CivilBrowser).markerClicked(this._component);
-    // ev.viewport!.iModel.selectionSet.replace(this._component.id);
     return true; // Don't allow clicks to be sent to active tool...
   }
 }
@@ -324,19 +321,15 @@ class SensorClusterMarker extends Marker {
     )
       return true;
 
-    const elementIds: any = [];
     const positions: Point3d[] = [];
     this._cluster.markers.forEach((marker) => {
-      elementIds.push(marker.component.id);
       if (marker.component.position)
         positions.push(marker.component.position);
     });
-    const vp = ev.viewport;
-    if (0 < elementIds.length && vp) {
-      vp.iModel.selectionSet.replace(elementIds);
+    if (0 < positions.length) {
       const range = Range3d.createArray(positions);
       range.expandInPlace(20);
-      vp.zoomToVolume(range, { animateFrustumChange: true });
+      ev.viewport.zoomToVolume(range, { animateFrustumChange: true });
 
       IModelApp.notifications.clearToolTip();
     }
@@ -428,7 +421,10 @@ export class SensorMarkerSetDecoration {
   /** Stop showing markers if currently active. */
   public static clear() {
     if (undefined === SensorMarkerSetDecoration.decorator) return;
-    IModelApp.viewManager.dropDecorator(SensorMarkerSetDecoration.decorator!);
+    IModelApp.viewManager.dropDecorator(SensorMarkerSetDecoration.decorator);
+    SensorMarkerSetDecoration.decorator._markerSet.markers.forEach((marker: SensorMarker) => marker.endSensorDataPolling());
+    SensorMarkerSetDecoration.decorator._markerSet.markers.clear();
+    SensorMarkerSetDecoration.decorator = undefined;
   }
 
   /** Toggle display of markers on and off. */

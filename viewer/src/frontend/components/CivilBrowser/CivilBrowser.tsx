@@ -74,8 +74,8 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     await this._componentSelected();
   }
 
-  public markerClicked = async (sensor: CivilComponentProps): Promise<void> => {
-    await focusOnSensor2(sensor, true);
+  public markerClicked = (sensor: CivilComponentProps) => {
+    focusOnSensor2(sensor, true);
     this.setState({ mode: CivilBrowserMode.Sensors, selectedSensorId: sensor.id });
   }
 
@@ -89,7 +89,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
       return;
     }
 
-    await focusOnSensor2(sensor, skipZoom);
+    focusOnSensor2(sensor, skipZoom);
   }
 
   /** When the user clicks on the meatball button, we will show a small popup menu */
@@ -216,6 +216,7 @@ const focusOnComponent2 = (component: CivilComponentProps, skipZoom?: boolean) =
     if (!skipZoom) {
       const margin = 0.25;
       const zoomOpts = { top: margin, bottom: margin, left: margin, right: margin };
+      // tslint:disable-next-line: no-floating-promises
       IModelApp.viewManager.selectedView!.zoomToElements([component.geometricId], { ...zoomOpts, animateFrustumChange: true });
     }
 
