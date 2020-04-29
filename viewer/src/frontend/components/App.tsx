@@ -29,8 +29,9 @@ import { AppLoggerCategory } from "../../common/configuration";
 import "@bentley/icons-generic-webfont/dist/bentley-icons-generic-webfont.css";
 import "./App.css";
 import { PopupMenu } from "./CivilBrowser/PopupMenu";
+import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
 
-const COLORS = ["darkgreen", "gold", "red"];
+const COLORS = ["darkgreen", "yellow", "red"];
 
 /** React state of the App component */
 export interface AppState {
@@ -68,19 +69,26 @@ export default class App extends React.Component<{}, AppState> {
     });
   }
 
-  private async updateAdtAssetStatus(assets: CivilComponentProps[]) {
+  private async updateAdtAssetStatus(assets: CivilComponentProps[], forceAlert: boolean) {
 
     assets.forEach(async (component: CivilComponentProps) => {
+      if (!(IModelApp as any)._doAdtPolling) return;
+
       // Stop polling asset if previous pass has marked this as not reporting computed health status (-1)
       if ((component as any).status !== -1) {
         try {
           const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
+          if (!(IModelApp as any)._doAdtPolling) return;
+
           (component as any).lastStatus = (component as any).status;
           (component as any).status = -1;
           if (assetData.hasOwnProperty("computedHealth")) {
             if (assetData.computedHealth > 100.0) {
-              if ((component as any).lastStatus !== 2)
-                IOTAlert.showAlert("Code Red in " + component.label, () => { alert("alert was clicked"); });
+              if ((component as any).lastStatus !== 2 || forceAlert)
+                IOTAlert.showAlert("Code Red in " + component.label, () => {
+                  ((IModelApp as any).civilBrowser as CivilBrowser).componentAlert(component);
+                  IOTAlert.closeAlert();
+                });
               (component as any).status = 2;
             } else if (assetData.computedHealth > 80.0)
               (component as any).status = 1;
@@ -104,9 +112,10 @@ export default class App extends React.Component<{}, AppState> {
     while (true) {
 
       if ((IModelApp as any)._doAdtPolling) {
+        const forceAlert = !wasPollingStarted;
         wasPollingStarted = true;
 
-        await this.updateAdtAssetStatus(assets);
+        await this.updateAdtAssetStatus(assets, forceAlert);
 
         const emphasizeComponent = (IModelApp as any).emphasizeComponent;
         const isEmphasized = emphasizeComponent !== undefined;

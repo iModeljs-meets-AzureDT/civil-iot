@@ -54,6 +54,11 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
     (IModelApp as any).civilBrowser = this;
   }
 
+  public componentAlert = (component: CivilComponentProps) => {
+    focusOnComponent2(component, false);
+    this.setState({ mode: CivilBrowserMode.Assets, selectedComponentId: component.id });
+  }
+
   private _componentSelected = async (selected?: SelectedNodeContext): Promise<void> => {
     // console.log("zoom to component with id " + component.id);
 

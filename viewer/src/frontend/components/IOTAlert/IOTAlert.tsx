@@ -1,27 +1,75 @@
 import * as React from "react";
 import "./IOTAlert.scss";
-import { IModelApp, NotifyMessageDetails, OutputMessagePriority, OutputMessageType } from "@bentley/imodeljs-frontend";
+import { Dialog, MessageContainer, MessageSeverity } from "@bentley/ui-core";
+import { ModelessDialogManager } from "@bentley/ui-framework";
+
 
 export interface IOTAlertProps {
   message: string;
-  onButtonClick(): void;
+  onButtonClick: () => void;
 }
 
 export class IOTAlert extends React.Component<IOTAlertProps> {
-  public render() {
+
+  public static readonly id = "IOTAlert";
+
+  // user clicked the dialog button
+  public static closeAlert() {
+    ModelessDialogManager.closeDialog(IOTAlert.id);
+  }
+
+  // user closed the modeless dialog
+  private _onCancel = () => {
+    this._closeDialog();
+  }
+
+  private _closeDialog = () => {
+    ModelessDialogManager.closeDialog(IOTAlert.id);
+  }
+
+  public render(): JSX.Element {
+    const width = 376;
+    const height = 70;
+    const y = window.innerHeight - height - 70;
+    const x = (window.innerWidth - width) / 2;
+
     return (
-      <>
-        <span>{this.props.message}</span>
-        <button onClick={this.props.onButtonClick}>Show Details</button>
-      </>
+      <Dialog
+        title={"IOT Alert"}
+        modelessId={IOTAlert.id}
+        opened={true}
+        resizable={false}
+        movable={true}
+        modal={false}
+        onClose={() => this._onCancel()}
+        onEscape={() => this._onCancel()}
+        width={width} height={height}
+        minHeight={height}
+        x = {x} y={y}
+      >
+        <MessageContainer severity={MessageSeverity.Warning}>
+          {this.renderContent()}
+        </MessageContainer>
+      </Dialog>
     );
   }
 
-  public static showAlert(messageIn: string, _onAction?: () => void) {
-    {
-      // const contents = <IOTAlert message={messageIn} onButtonClick={onAction} />;
-      const errDetails = new NotifyMessageDetails(OutputMessagePriority.Warning, messageIn, undefined, OutputMessageType.Sticky);
-      IModelApp.notifications.outputMessage(errDetails);
-    }
+  public renderContent() {
+    return (
+      <div>
+        <span className="message-span">{this.props.message}</span>
+        <button className="button-to-issue" onClick={this.props.onButtonClick}>
+          <span>Go To Issue</span>
+        </button>
+      </div>
+    );
+  }
+
+  public static showAlert(messageIn: string, onAction: () => void) {
+    ModelessDialogManager.closeDialog(IOTAlert.id);
+    ModelessDialogManager.openDialog(<IOTAlert onButtonClick={onAction} message={messageIn} />, IOTAlert.id);
+
+    // const message = new NotifyMessageDetails(OutputMessagePriority.Warning, messageIn, undefined);
+    // MessageManager.addMessage(message);
   }
 }
