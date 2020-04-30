@@ -7,7 +7,7 @@ import { XYAndZ, XAndY, Range3d, Point3d } from "@bentley/geometry-core";
 import { BeDuration } from "@bentley/bentleyjs-core";
 import { CivilComponentProps, CivilDataComponentType, CivilDataModel } from "../api/CivilDataModel";
 import { CivilBrowser } from "./CivilBrowser/CivilBrowser";
-import { AdtDataLink } from "../api/AdtDataLink";
+import { IotDataPolling } from "../api/IotDataPolling";
 
 const STATUS_TO_STRING = ["Offline", "Normal", "Medium", "High"];
 const STATUS_COUNT = 4;
@@ -24,7 +24,6 @@ export class SensorMarker extends Marker {
   protected _tooltipViewPoint: Point3d | undefined;
   protected _status: number = 0;
   protected _tooltip: string;
-  protected _sensorData: any;
   protected _oldValue1: string;
   protected _oldValue2: string;
 
@@ -75,33 +74,31 @@ export class SensorMarker extends Marker {
 
   public endSensorDataPolling() {
     this._doSensorAdtPolling = false;
-  }
-
-  public async getSensorData(dtId: string) {
-    // if (!AdtDataLink.get().getToken())
-    //   await AdtDataLink.get().login();
-    return AdtDataLink.get().fetchDataForNode(dtId);
+    if (this._component.type !== CivilDataComponentType.TrafficCamera)
+      IotDataPolling.get().removeIotDataListener(this._component.label);
   }
 
   private async updateSensorDataLoop() {
     let wasPollingStarted: boolean = false;
 
+    if (this._component.type !== CivilDataComponentType.TrafficCamera)
+      IotDataPolling.get().addIotDataListener(this._component.label);
+
     while (this._doSensorAdtPolling) {
       // suspend polling if ADT polling toggle switch is off
       if ((IModelApp as any)._doAdtPolling) {
         wasPollingStarted = true;
-        this._sensorData = await this.getSensorData(this._component.label);
-        const oldStatus: number = this._status;
+        const sensorData = IotDataPolling.get().getIotData(this._component.label);
+        const lastStatus: number = this._status;
         if (this._component.type === CivilDataComponentType.TrafficCamera)
           this._status = 1;
         else
-          this._status = this.getSensorStatus(this._sensorData, this._component.type);
-        if (this._status !== oldStatus)
+          this._status = this.getSensorStatus(sensorData, this._component.type);
+        if (this._status !== lastStatus)
           IModelApp.viewManager.selectedView!.invalidateDecorations();
 
-        if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint) {
-          this.updateTooltip(this._component);
-        }
+        if (IModelApp.notifications.isToolTipOpen && this._tooltipViewPoint)
+          this.updateTooltip(this._component, sensorData);
       } else if (wasPollingStarted) {
         wasPollingStarted = false;
         this._status = 0;   // reset status to 0 (black)
@@ -182,7 +179,7 @@ export class SensorMarker extends Marker {
     return sensorStatus;
   }
 
-  public updateTooltip(component: CivilComponentProps) {
+  public updateTooltip(component: CivilComponentProps, sensorData: any) {
 
     let title = this._tooltip;
     let value1: string = "";
@@ -192,13 +189,13 @@ export class SensorMarker extends Marker {
       case CivilDataComponentType.TemperatureSensor:
       case CivilDataComponentType.VibrationSensor:
       case CivilDataComponentType.TrafficSensor:
-        if (this._sensorData && this._sensorData.hasOwnProperty("observationLabel1")) {
-          value1 = this._sensorData.observationValue1.toFixed(2);
-          title += "<b>" + this._sensorData.observationLabel1 + ": </b>" + value1 + " " + this._sensorData.observationUnit1 + "<br>";
+        if (sensorData && sensorData.hasOwnProperty("observationLabel1")) {
+          value1 = sensorData.observationValue1.toFixed(2);
+          title += "<b>" + sensorData.observationLabel1 + ": </b>" + value1 + " " + sensorData.observationUnit1 + "<br>";
         }
-        if (this._sensorData && this._sensorData.hasOwnProperty("observationLabel2")) {
-          value2 = this._sensorData.observationValue2.toFixed(2);
-          title += "<b>" + this._sensorData.observationLabel2 + ": </b>" + value2 + " " + this._sensorData.observationUnit2 + "<br>";
+        if (sensorData && sensorData.hasOwnProperty("observationLabel2")) {
+          value2 = sensorData.observationValue2.toFixed(2);
+          title += "<b>" + sensorData.observationLabel2 + ": </b>" + value2 + " " + sensorData.observationUnit2 + "<br>";
         }
         break;
       case CivilDataComponentType.TrafficCamera:
@@ -235,7 +232,7 @@ export class SensorMarker extends Marker {
     super.onMouseEnter(ev);
 
     this._tooltipViewPoint = ev.viewPoint;
-    this.updateTooltip(this._component);
+    this.updateTooltip(this._component, undefined);
   }
 
   /** Show the cluster as a white circle with an outline */
