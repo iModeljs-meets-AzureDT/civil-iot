@@ -18,7 +18,7 @@ import { SignIn } from "@bentley/ui-components";
 import { IOTAlert} from "./IOTAlert/IOTAlert";
 import { CivilViewerApp } from "../app/CivilViewerApp";
 import { CivilDataModel, CivilComponentProps, CivilDataComponentType } from "../api/CivilDataModel";
-import { AdtDataLink } from "../api/AdtDataLink";
+import { IotDataPolling } from "../api/IotDataPolling";
 import { EmphasizeAssets } from "../api/EmphasizeAssets";
 import { AppUi } from "../app-ui/AppUi";
 import { AppBackstageItemProvider } from "../app-ui/backstage/AppBackstageItemProvider";
@@ -64,49 +64,40 @@ export default class App extends React.Component<{}, AppState> {
     Presentation.selection.selectionChange.addListener(this._onSelectionChanged);
 
     IModelApp.viewManager.onViewOpen.addOnce(async (vp: Viewport) => {
+      await IotDataPolling.initialize();
       await CivilDataModel.initialize(vp.iModel);
-      await this.updateAssetDataLoop(vp);
+      // tslint:disable-next-line: no-floating-promises
+      this.assetStatusVisualizationLoop(vp);
     });
   }
 
-  private async updateAdtAssetStatus(assets: CivilComponentProps[], forceAlert: boolean) {
+  private getAssetStatus(component: CivilComponentProps): number {
 
-    assets.forEach(async (component: CivilComponentProps) => {
-      if (!(IModelApp as any)._doAdtPolling) return;
+    const assetData = IotDataPolling.get().getIotData(component.label);
+    if (!assetData)
+      return -2;    // no IoT data available yet
+    if (!assetData.hasOwnProperty("computedHealth"))
+      return -1;    // not returning IoT data
+    if (assetData.computedHealth > 100.0)
+      return 2;
+    if (assetData.computedHealth > 80.0)
+      return 1;
 
-      // Stop polling asset if previous pass has marked this as not reporting computed health status (-1)
-      if ((component as any).status !== -1) {
-        try {
-          const assetData = await AdtDataLink.get().fetchDataForNode(component.label);
-          if (!(IModelApp as any)._doAdtPolling) return;
-
-          (component as any).lastStatus = (component as any).status;
-          (component as any).status = -1;
-          if (assetData.hasOwnProperty("computedHealth")) {
-            if (assetData.computedHealth > 100.0) {
-              if ((component as any).lastStatus !== 2 || forceAlert)
-                IOTAlert.showAlert("Code Red in " + component.label, () => {
-                  ((IModelApp as any).civilBrowser as CivilBrowser).componentAlert(component);
-                  IOTAlert.closeAlert();
-                });
-              (component as any).status = 2;
-            } else if (assetData.computedHealth > 80.0)
-              (component as any).status = 1;
-            else
-              (component as any).status = 0;
-          }
-        } catch (e) {}
-      }
-    });
+    return 0;
   }
 
-  private async updateAssetDataLoop(vp: Viewport) {
+  private async assetStatusVisualizationLoop(vp: Viewport) {
     const data = CivilDataModel.get();
     const assetTypes: CivilDataComponentType[] = [CivilDataComponentType.RoadSegment, CivilDataComponentType.Bridge, CivilDataComponentType.Tunnel];
     const assets: CivilComponentProps[] = data.getComponentsForTypes(assetTypes);
     let wasPollingStarted: boolean = false;
 
-    // The global polling switch is turned on by default but can be disabled by a settings button
+    // Register each of the selected components for IoT Data Polling
+    assets.forEach(async (component: CivilComponentProps) => {
+      IotDataPolling.get().addIotDataListener(component.label);
+    });
+
+    // The global polling switch is turned off by default and is enabled by a settings button
     (IModelApp as any)._doAdtPolling = false;
 
     while (true) {
@@ -115,15 +106,26 @@ export default class App extends React.Component<{}, AppState> {
         const forceAlert = !wasPollingStarted;
         wasPollingStarted = true;
 
-        await this.updateAdtAssetStatus(assets, forceAlert);
-
         const emphasizeComponent = (IModelApp as any).emphasizeComponent;
         const isEmphasized = emphasizeComponent !== undefined;
 
-        assets.forEach(async (component: CivilComponentProps) => {
+        assets.forEach((component: CivilComponentProps) => {
+          // save the previous status for this asset so we can detect a change
+          const lastStatus = (component as any).status;
 
-          // Only attempt to colorize assets that have a computed health status - zero and above
-          if ((component as any).status !== -1) {
+          // Get the status index value for the computed health of the asset
+          (component as any).status = this.getAssetStatus(component);
+
+          // If the asset data does not have computedHealth (-1), stop polling IoT data for it
+          if ((component as any).status < 0) {
+            if ((component as any).status === -1 && (lastStatus === undefined || lastStatus === -2))
+              IotDataPolling.get().removeIotDataListener(component.label);
+          } else {
+            if ((component as any).status === 2 && ((component as any).status !== lastStatus || forceAlert))
+              IOTAlert.showAlert(component.label, () => {
+                ((IModelApp as any).civilBrowser as CivilBrowser).componentAlert(component);
+                IOTAlert.closeAlert();
+              });
 
             // Check if component(s) are emphasized and if so - skip colorizing any that are not
             let setComponentColor = false;
@@ -135,12 +137,8 @@ export default class App extends React.Component<{}, AppState> {
                   setComponentColor = true;
               });
             }
-            if (setComponentColor) {
-              const status = (component as any).status;
-              if (undefined !== component.geometricId && status !== -1) {
-                EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[status]), vp);
-              }
-            }
+            if (setComponentColor && undefined !== component.geometricId)
+              EmphasizeAssets.colorize([component.geometricId], new ColorDef(COLORS[(component as any).status]), vp);
           }
         });
       } else if (wasPollingStarted) {
@@ -148,7 +146,7 @@ export default class App extends React.Component<{}, AppState> {
         EmphasizeAssets.clearColorize(vp);
       }
 
-      await BeDuration.wait(1000);    // pause 1 second between each asset health status polling loop
+      await BeDuration.wait(1000);    // pause 1 second between each asset status visualization loop
     }
   }
 

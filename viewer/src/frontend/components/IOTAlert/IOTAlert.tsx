@@ -65,11 +65,12 @@ export class IOTAlert extends React.Component<IOTAlertProps> {
     );
   }
 
-  public static showAlert(messageIn: string, onAction: () => void) {
+  public static showAlert(dtId: string, onAction: () => void) {
     ModelessDialogManager.closeDialog(IOTAlert.id);
-    ModelessDialogManager.openDialog(<IOTAlert onButtonClick={onAction} message={messageIn} />, IOTAlert.id);
+    const _message = "Code Red in " + dtId;
+    ModelessDialogManager.openDialog(<IOTAlert onButtonClick={onAction} message={_message} />, IOTAlert.id);
 
-    // const message = new NotifyMessageDetails(OutputMessagePriority.Warning, messageIn, undefined);
+    // const message = new NotifyMessageDetails(OutputMessagePriority.Warning, _message, undefined);
     // MessageManager.addMessage(message);
   }
 }
