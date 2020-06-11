@@ -65,7 +65,7 @@ export class SampleFrontstage2 extends FrontstageProvider {
     });
 
     this._contentLayoutDef2 = new ContentLayoutDef({
-      verticalSplit: { percentage: 0.50, left: 0, right: 1 },
+      verticalSplit: { percentage: 0.75, left: 0, right: 1 },
     });
 
     // Create the content group.

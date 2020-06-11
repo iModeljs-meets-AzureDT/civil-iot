@@ -271,7 +271,7 @@ class WebServer {
       proxyReq.removeHeader('Origin');
     }
     this._app.use(['/query', '/models', '/digitaltwins', '/eventroutes'], createProxyMiddleware({
-      target: 'https://coffsharbor-twin.api.wcus.digitaltwins.azure.net', changeOrigin: true, headers: {
+      target: 'https://coffsharbor.api.wus2.digitaltwins.azure.net', changeOrigin: true, headers: {
         Connection: 'keep-alive'
       },
       onProxyReq: onProxyReq

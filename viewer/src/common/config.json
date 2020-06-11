@@ -5,6 +5,6 @@
   // iModel with the developer registration procedure here - https://git.io/fx8YP
   // -----------------------------------------------------------------------------------------------------------
   "imjs_test_project": "CoffsHarborDemo", // Set this to the name of the sample project
-  "imjs_test_imodel": "CoffsHarborDemo", // Set this to the name of the sample iModel
-  "imjs_backend": 1 // Un-comment to use general-purpose-backend. Default value is 0 = local backend
+  "imjs_test_imodel": "CoffsHarborDemo" // Set this to the name of the sample iModel
+  // "imjs_backend": 1 // Un-comment to use general-purpose-backend. Default value is 0 = local backend
 }

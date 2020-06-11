@@ -51,7 +51,7 @@ export class IotDataPolling {
   public async doIotDataPolling() {
     while (!this._stopPolling) {
       this._iotDataPollingCache.map(async (item) => {
-        const assetData = await AdtDataLink.get().fetchDataForNode(item.dtId);
+        const assetData = await AdtDataLink.fetchDataForNode(item.dtId);
         item.assetData = {...assetData};
       });
 

@@ -10,6 +10,7 @@ import { BackgroundMapType } from "@bentley/imodeljs-common";
 import { AdtDataLink } from "../../api/AdtDataLink";
 import { IotDataPolling } from "../../api/IotDataPolling";
 import "./TerrainSettings.scss";
+import { AzureAuth } from "../../api/AzureToken";
 
 interface TerrainSettingsProps extends CommonProps {
   onExecute?: () => void;
@@ -93,7 +94,7 @@ export class TerrainSettings extends React.Component<TerrainSettingsProps, Terra
       IotDataPolling.get().stopPolling();
       EmphasizeAssets.clearColorize(IModelApp.viewManager.selectedView!);
     } else {
-      await AdtDataLink.initialize();
+      await AzureAuth.initialize();
       IotDataPolling.get().startPolling();
       (IModelApp as any)._doAdtPolling = true;
     }

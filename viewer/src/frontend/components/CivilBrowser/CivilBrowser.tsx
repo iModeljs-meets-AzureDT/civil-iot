@@ -17,6 +17,7 @@ import { EmphasizeAssets } from "../../api/EmphasizeAssets";
 import { ITreeDataProvider } from "@bentley/ui-components";
 import { PopupMenu, PopupMenuEntry } from "./PopupMenu";
 import { ElectronRpcConfiguration } from "@bentley/imodeljs-common";
+import { TimeSeries } from "../TimeSeries";
 
 export enum CivilBrowserMode {
   MainMenu = "1",
@@ -46,7 +47,6 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
   constructor(props?: any, context?: any) {
     super(props, context);
-
     this.state = {
       mode: CivilBrowserMode.MainMenu,
     };
@@ -110,6 +110,7 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
       entries.push({ label: "Go to " + typeString, node, onPicked: focusOnComponent });
       entries.push({ label: "Show sensors", node, onPicked: showSensors });
+      entries.push({ label: "Show historic data", node, onPicked: showTimeSeriesData });
     }
 
     const sensor = data.getSensorForId(node.component.id);
@@ -119,9 +120,11 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
       entries.push({ label: "Go to " + typeString, node, onPicked: focusOnSensor });
       entries.push({ label: "Show asset", node, onPicked: showAsset });
+      entries.push({ label: "Show historic data", node, onPicked: showTimeSeriesData });
 
       if (sensor.type === CivilDataComponentType.TrafficCamera)
         entries.push({ label: "Show image", node, onPicked: showImage });
+        entries.push({ label: "Show historic data", node, onPicked: showTimeSeriesData });
     }
 
     const menuEntries: PopupMenuEntry[] = [];
@@ -245,6 +248,13 @@ const showAsset = (entry: PopupMenuEntry) => {
 
   (IModelApp as any).civilBrowser.setState({ selectedComponentId: asset?.id, mode: CivilBrowserMode.Assets });
 };
+
+const showTimeSeriesData = async (entry: PopupMenuEntry) => {
+  const node = (entry as any).node as SelectedNodeContext;
+  const component = node.component;
+
+  await TimeSeries.showTsiDataForNode(component.label);
+}
 
 /** Open an image specified as a data URL in a new window/tab. Works around differences between browsers and Electron.
  * @param url The base64-encoded image URL.

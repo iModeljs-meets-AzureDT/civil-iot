@@ -3,7 +3,6 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
-
 import { ViewState } from "@bentley/imodeljs-frontend";
 
 import {
@@ -28,6 +27,7 @@ import {
   IModelConnectedNavigationWidget,
   PopupButton,
   PopupButtonChildrenRenderPropArgs,
+  StagePanelState,
 } from "@bentley/ui-framework";
 
 import { TableContent } from "../contentviews/TableContent";
@@ -39,6 +39,8 @@ import { SvgSprite } from "@bentley/ui-core";
 import civilIcon from "../../components/CivilBrowser/civil-model.svg";
 import { CivilBrowser } from "../../components/CivilBrowser/CivilBrowser";
 import { TerrainSettings } from "../../components/TerrainSettings/TerrainSettings";
+import { TimeSeriesDiagram } from "../../components/TimeSeriesDiagram";
+import "./BottomPanel.scss";
 
 /**
  * Sample Frontstage for Civil IoT Viewer application
@@ -172,6 +174,20 @@ export class SampleFrontstage extends FrontstageProvider {
                 applicationData={{
                   iModelConnection: UiFramework.getIModelConnection(),
                 }}
+              />,
+            ]}
+          />
+        }
+        bottomPanel={
+          <StagePanel
+            size={360}
+            minSize={340}
+            resizable={false}
+            allowedZones={[6, 9]}
+            defaultState={StagePanelState.Off}
+            widgets={[
+              <Widget element={<TimeSeriesDiagram />} fillZone={true}
+                label="Time Series Browser"
               />,
             ]}
           />
