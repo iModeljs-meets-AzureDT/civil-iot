@@ -124,7 +124,6 @@ export class CivilBrowser extends React.Component<CivilBrowserProps, CivilBrowse
 
       if (sensor.type === CivilDataComponentType.TrafficCamera)
         entries.push({ label: "Show image", node, onPicked: showImage });
-        entries.push({ label: "Show historic data", node, onPicked: showTimeSeriesData });
     }
 
     const menuEntries: PopupMenuEntry[] = [];

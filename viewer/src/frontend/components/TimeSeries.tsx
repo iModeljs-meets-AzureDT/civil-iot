@@ -21,7 +21,7 @@ export class TimeSeries {
         ['avg', 'min', 'max'],
         searchSpan,
         null,  // split by property
-        {color:'#00B294', includeEnvelope: false, alias: 'Node Reading: '}));
+        {color:'#00B294', includeEnvelope: false, alias: 'Node Reading'}));
 
     const result = await this.tsiClient.server.getAggregates(await AzureAuth.getTsiToken(), EnvironmentFqdn, aggregateExpressions.map(function(ae){return ae.toTsx()}));
     if (result[0] && result[0].measures.length > 0) this.displayTsiGraph(result, aggregateExpressions)
