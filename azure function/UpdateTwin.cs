@@ -126,22 +126,6 @@ namespace Company.Function
             updateHigherLevelTwin(observedNodeId, log);           
         }
 
-        private static JsonPatch generatePatchForSensor(double value1, bool exists1, double value2 = -1, bool exists2 = false) {
-            JsonPatch patch = new JsonPatch();
-
-            if (value1 >= 0) {
-                if (exists1) patch.AppendReplaceOp("/observationValue1", value1);
-                else patch.AppendAddOp("/observationValue1", value1);
-            }
-
-            if (value2 >= 0) {
-                if (exists2) patch.AppendReplaceOp("/observationValue2", value2);
-                else patch.AppendAddOp("/observationValue2", value2);
-            }
-
-            return patch;
-        }
-
         private static async void updateHigherLevelTwin (string dtId, ILogger log) {
             string query = $"SELECT * FROM DigitalTwins T WHERE IS_OF_MODEL(T, 'dtmi:adt:chb:Sensor;1') AND T.observes = '{dtId}'";
             IList<object> items = await executeQuery(query);
@@ -198,6 +182,22 @@ namespace Company.Function
                 JsonPatch patch = generatePatchForComponent(maxPercentage * 100, exists);
                 try { await client.DigitalTwins.UpdateAsync(dtId, patch.Document); } catch {}
             }
+        }
+
+        private static JsonPatch generatePatchForSensor(double value1, bool exists1, double value2 = -1, bool exists2 = false) {
+            JsonPatch patch = new JsonPatch();
+
+            if (value1 >= 0) {
+                if (exists1) patch.AppendReplaceOp("/observationValue1", value1);
+                else patch.AppendAddOp("/observationValue1", value1);
+            }
+
+            if (value2 >= 0) {
+                if (exists2) patch.AppendReplaceOp("/observationValue2", value2);
+                else patch.AppendAddOp("/observationValue2", value2);
+            }
+
+            return patch;
         }
 
         private static JsonPatch generatePatchForComponent(double value, bool exists) {
