@@ -130,7 +130,7 @@
     "@types/react-dom": "^16.8.0",
     "@types/react-redux": "^6.0.14",
     "@types/react-resize-detector": "^3.1.0",
-    "electron": "^6.1.10",
+    "electron": "^18.3.7",
     "electron-chromedriver": "^4.0.0",
     "file-loader": "1.1.11",
     "ncp": "^2.0.0",
